@@ -1,14 +1,14 @@
 #!/bin/bash
 # ============================================================
-# Postulo — Script de bootstrap (installation depuis zéro)
-# Usage : bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/postulo/main/install.sh)
+# OpenSuivi — Script de bootstrap (installation depuis zéro)
+# Usage : bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/opensuivi/main/install.sh)
 # ============================================================
 
 set -e
 
 echo ""
 echo "╔══════════════════════════════════════╗"
-echo "║         Installation de Postulo       ║"
+echo "║         Installation de OpenSuivi       ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -20,13 +20,13 @@ echo "  ✓ git et curl installés."
 echo ""
 
 # ── Clonage du dépôt ────────────────────────────────────────
-echo "─── Téléchargement de Postulo ───"
-INSTALL_DIR="$HOME/postulo"
+echo "─── Téléchargement de OpenSuivi ───"
+INSTALL_DIR="$HOME/opensuivi"
 if [ -d "$INSTALL_DIR" ]; then
     echo "  Le dossier $INSTALL_DIR existe déjà, mise à jour..."
     git -C "$INSTALL_DIR" pull --ff-only
 else
-    git clone https://github.com/VOTRE_USERNAME/postulo.git "$INSTALL_DIR"
+    git clone https://github.com/VOTRE_USERNAME/opensuivi.git "$INSTALL_DIR"
 fi
 echo "  ✓ Dépôt prêt dans $INSTALL_DIR"
 echo ""

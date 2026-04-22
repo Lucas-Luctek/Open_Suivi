@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# Postulo — Script d'installation
+# OpenSuivi — Script d'installation
 # Testé sur Debian 12 / Ubuntu 22.04+
 # ============================================================
 
@@ -8,7 +8,7 @@ set -e
 
 echo ""
 echo "╔══════════════════════════════════════╗"
-echo "║         Installation de Postulo       ║"
+echo "║         Installation de OpenSuivi       ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -105,7 +105,7 @@ from app import init_db
 import sqlite3
 from werkzeug.security import generate_password_hash
 init_db()
-conn = sqlite3.connect('postulo.db')
+conn = sqlite3.connect('opensuivi.db')
 c = conn.cursor()
 hashed = generate_password_hash('${ADMIN_PASS}')
 c.execute("UPDATE users SET password = ? WHERE username = 'admin'", (hashed,))
@@ -117,9 +117,9 @@ PYEOF
 # ── 9. Service systemd ──────────────────────────────────────
 echo "─── Service systemd ───"
 INSTALL_DIR="$(pwd)"
-cat > /etc/systemd/system/postulo.service <<EOF
+cat > /etc/systemd/system/opensuivi.service <<EOF
 [Unit]
-Description=Postulo — Suivi de recherche d'emploi
+Description=OpenSuivi — Suivi de recherche d'emploi
 After=network.target
 
 [Service]
@@ -135,9 +135,9 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable postulo --quiet
-systemctl restart postulo
-echo "  ✓ Service Postulo démarré et activé au démarrage."
+systemctl enable opensuivi --quiet
+systemctl restart opensuivi
+echo "  ✓ Service OpenSuivi démarré et activé au démarrage."
 echo ""
 
 echo "╔══════════════════════════════════════════════════╗"
@@ -145,9 +145,9 @@ echo "║           Installation terminée !                ║"
 echo "╠══════════════════════════════════════════════════╣"
 echo "║                                                  ║"
 echo "║  Commandes utiles :                              ║"
-echo "║    systemctl status postulo                      ║"
-echo "║    systemctl restart postulo                     ║"
-echo "║    journalctl -u postulo -f                      ║"
+echo "║    systemctl status opensuivi                      ║"
+echo "║    systemctl restart opensuivi                     ║"
+echo "║    journalctl -u opensuivi -f                      ║"
 echo "║                                                  ║"
 printf "║  Accès : http://%-32s║\n" "$(hostname -I | awk '{print $1}'):$APP_PORT"
 echo "║  Login  : admin  /  (mot de passe choisi)        ║"

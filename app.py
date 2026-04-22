@@ -35,7 +35,7 @@ if app.secret_key == 'changez-cette-cle-en-production-svp':
     print("⚠️  ATTENTION : SECRET_KEY par défaut utilisée. Changez-la en production !", flush=True)
 
 _DATA_DIR = os.environ.get('DATA_DIR', '')
-DB_NAME = os.path.join(_DATA_DIR, 'postulo.db') if _DATA_DIR else 'postulo.db'
+DB_NAME = os.path.join(_DATA_DIR, 'opensuivi.db') if _DATA_DIR else 'opensuivi.db'
 UPLOAD_FOLDER = os.path.join(_DATA_DIR, 'uploads') if _DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
 STATUTS = [
@@ -1207,7 +1207,7 @@ def ical_feed(token):
         abort(404)
     uid = user['id']
     company_row = c.execute("SELECT value FROM settings WHERE key='company_name'").fetchone()
-    company_name = company_row['value'] if company_row else 'Postulo'
+    company_name = company_row['value'] if company_row else 'OpenSuivi'
 
     cal = Calendar()
     cal.add('prodid', f'-//{company_name}//Suivi Emploi//FR')
@@ -1228,7 +1228,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'event-{e["id"]}@postulo'))
+        ev.add('uid', vText(f'event-{e["id"]}@opensuivi'))
         ev.add('summary', vText(f'{e["type_event"]} : {e["titre"]}'))
         ev.add('dtstart', dt)
         ev.add('dtend', dt)
@@ -1247,7 +1247,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'relance-{r["id"]}@postulo'))
+        ev.add('uid', vText(f'relance-{r["id"]}@opensuivi'))
         label = f'{r["etablissement"]}'
         if r['poste']:
             label += f' — {r["poste"]}'
@@ -1268,7 +1268,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'limite-{l["id"]}@postulo'))
+        ev.add('uid', vText(f'limite-{l["id"]}@opensuivi'))
         label = f'{l["etablissement"]}'
         if l['poste']:
             label += f' — {l["poste"]}'
@@ -1281,7 +1281,7 @@ def ical_feed(token):
     return Response(
         cal.to_ical(),
         mimetype='text/calendar',
-        headers={'Content-Disposition': 'inline; filename="postulo.ics"'}
+        headers={'Content-Disposition': 'inline; filename="opensuivi.ics"'}
     )
 
 # ─────────────────────────────────────────────
@@ -2421,7 +2421,7 @@ def favicon():
 
 @app.route('/manifest.json')
 def pwa_manifest():
-    name = get_setting('company_name', 'Postulo')
+    name = get_setting('company_name', 'OpenSuivi')
     color_primary = get_setting('color_primary', '') or '#0f172a'
     logo_filename = get_setting('logo_filename', '')
     icon_url = f'/static/{logo_filename}' if logo_filename else '/static/favicon.svg'

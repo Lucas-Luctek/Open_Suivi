@@ -1,10 +1,10 @@
-# Postulo — Suivi de recherche d'emploi
+# OpenSuivi — Suivi de recherche d'emploi
 
 ![Licence](https://img.shields.io/badge/licence-GPL%20v3-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Flask](https://img.shields.io/badge/flask-2.3%2B-green)
 
-**Postulo** est un logiciel libre de suivi de recherche d'emploi, auto-hébergé, développé en Python/Flask avec SQLite.  
+**OpenSuivi** est un logiciel libre de suivi de recherche d'emploi, auto-hébergé, développé en Python/Flask avec SQLite.  
 Multi-utilisateurs, assisté par IA (GPT-4o-mini), installable comme une vraie application mobile (PWA).
 
 ---
@@ -76,7 +76,7 @@ Multi-utilisateurs, assisté par IA (GPT-4o-mini), installable comme une vraie a
 ### Installation en une commande
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/postulo/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/opensuivi/main/install.sh)
 ```
 
 Le script :
@@ -93,8 +93,8 @@ Vous serez invité à choisir un **mot de passe admin** et un **port** (5050 par
 ### Installation manuelle
 
 ```bash
-git clone https://github.com/VOTRE_USERNAME/postulo.git
-cd postulo
+git clone https://github.com/VOTRE_USERNAME/opensuivi.git
+cd opensuivi
 chmod +x setup.sh && sudo ./setup.sh
 ```
 
@@ -114,7 +114,7 @@ Le fichier `.env` (créé automatiquement depuis `.env.example`) :
 | Variable | Description | Défaut |
 |---|---|---|
 | `SECRET_KEY` | Clé secrète Flask (auto-générée) | — |
-| `COMPANY_NAME` | Nom de l'application | Postulo |
+| `COMPANY_NAME` | Nom de l'application | OpenSuivi |
 | `PORT` | Port d'écoute | 5050 |
 | `FLASK_DEBUG` | Mode debug (false en prod) | false |
 
@@ -126,13 +126,13 @@ La clé API OpenAI se configure dans l'interface : **Admin → Personnalisation*
 
 ```bash
 # Statut du service
-systemctl status postulo
+systemctl status opensuivi
 
 # Redémarrer
-systemctl restart postulo
+systemctl restart opensuivi
 
 # Logs en direct
-journalctl -u postulo -f
+journalctl -u opensuivi -f
 
 # Sauvegarde manuelle
 python3 backup.py
@@ -143,7 +143,7 @@ python3 backup.py
 ## Structure du projet
 
 ```
-postulo/
+opensuivi/
 ├── app.py              # Application Flask principale
 ├── backup.py           # Sauvegarde automatique de la BDD
 ├── requirements.txt    # Dépendances Python

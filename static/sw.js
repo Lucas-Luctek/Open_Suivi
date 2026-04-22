@@ -1,4 +1,4 @@
-const CACHE = 'postulo-v1';
+const CACHE = 'opensuivi-v1';
 const PRECACHE = ['/static/style.css', '/static/favicon.svg', '/offline'];
 
 self.addEventListener('install', e => {

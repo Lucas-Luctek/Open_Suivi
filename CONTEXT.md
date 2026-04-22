@@ -1,15 +1,15 @@
-# Contexte du projet — Postulo (Suivi Recherche d'Emploi)
+# Contexte du projet — OpenSuivi (Suivi Recherche d'Emploi)
 
 ## Ce qu'est ce projet
-Postulo est un logiciel libre de suivi de recherche d'emploi, auto-hébergé, développé en Python/Flask + SQLite.
+OpenSuivi est un logiciel libre de suivi de recherche d'emploi, auto-hébergé, développé en Python/Flask + SQLite.
 Transformé à partir d'un CRM open source (Open_CRM), puis entièrement repensé pour la recherche d'emploi.
 Multi-utilisateurs : chaque utilisateur a son propre suivi privé, l'admin gère les comptes.
 
 ## Stack technique
 - Backend : Python / Flask
-- Base de données : SQLite (fichier local `postulo.db`)
+- Base de données : SQLite (fichier local `opensuivi.db`)
 - Frontend : HTML/CSS/JS (templates Jinja2, pas de framework JS)
-- Déploiement : Debian Linux, service systemd (`systemctl restart postulo`) — port **5050**
+- Déploiement : Debian Linux, service systemd (`systemctl restart opensuivi`) — port **5050**
 - Reverse proxy : Nginx (gère le HTTPS)
 - Librairies : **APScheduler**, **WeasyPrint**, **openai**, **requests**, **beautifulsoup4**, **icalendar**, **openpyxl**
 
@@ -22,13 +22,13 @@ Multi-utilisateurs : chaque utilisateur a son propre suivi privé, l'admin gère
 - `templates/` → vues HTML (Jinja2)
 - `static/` → style.css, favicon.svg, sw.js (service worker PWA)
 - `uploads/` → pièces jointes + CV/LM des candidatures
-- `backups/` → sauvegardes automatiques de postulo.db
+- `backups/` → sauvegardes automatiques de opensuivi.db
 
 ## Méthode de travail — IMPORTANT
 - On travaille **étape par étape**, une seule fonctionnalité à la fois
 - Je fais des **snapshots VM** avant chaque grosse modification
-- Redémarrer le serveur : `systemctl restart postulo`
-- Vérifier les logs : `journalctl -u postulo -n 50`
+- Redémarrer le serveur : `systemctl restart opensuivi`
+- Vérifier les logs : `journalctl -u opensuivi -n 50`
 - Le serveur tourne sur le **port 5050** (Nginx fait le proxy HTTPS)
 - Ne jamais modifier plusieurs fichiers critiques en même temps
 
