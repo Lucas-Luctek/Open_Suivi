@@ -1,0 +1,354 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Nouvelle Candidature - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.container { max-width: 760px; margin: 28px auto; background: var(--card); padding: 28px; border-radius: 8px; border: 1px solid var(--border); }
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 20px 0 12px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+label .req { color: var(--danger); }
+input[type=text], input[type=email], input[type=date], select, textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 12px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+.checkbox-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+.checkbox-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: 0.15s; text-decoration: none; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+.duplicate-alert { background: rgba(220,38,38,0.07); border: 1px solid rgba(220,38,38,0.25); border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.85rem; display: none; }
+.duplicate-alert a { color: var(--danger); font-weight: 600; }
+.profil-hint { background: rgba(30,64,175,0.07); border: 1px solid rgba(30,64,175,0.2); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted); }
+.autofill-box { background: rgba(212,175,55,0.07); border: 1px solid rgba(212,175,55,0.35); border-radius: 8px; padding: 16px 18px; margin-bottom: 22px; }
+.autofill-box h2 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin: 0 0 10px; }
+.autofill-box textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); padding: 9px 12px; font-size: 0.88rem; font-family: inherit; resize: vertical; min-height: 72px; outline: none; }
+.autofill-box textarea:focus { border-color: var(--accent); }
+.autofill-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.btn-autofill { background: var(--accent); color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: 0.15s; }
+.btn-autofill:hover { opacity: 0.85; }
+.btn-autofill:disabled { opacity: 0.5; cursor: not-allowed; }
+.autofill-status { font-size: 0.83rem; color: var(--text-muted); }
+.autofill-status.error { color: var(--danger); }
+.autofill-status.success { color: var(--success); }
+.field-filled { animation: highlightFill 1.8s ease forwards; }
+@keyframes highlightFill { 0% { background: rgba(212,175,55,0.25); } 100% { background: var(--bg); } }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .container { margin: 8px; padding: 16px; } }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+    <h1>Nouvelle Candidature</h1>
+
+    <div class="autofill-box">
+        <h2>✦ Remplissage automatique depuis une offre</h2>
+        <textarea id="autofillSource" placeholder="Collez ici l'URL de l'offre (France Travail, Indeed, WTTJ…) ou le texte complet copié depuis la page"></textarea>
+        <div class="autofill-actions">
+            <button type="button" class="btn-autofill" id="autofillBtn" onclick="doAutoFill()">Analyser l'offre</button>
+            <span class="autofill-status" id="autofillStatus"></span>
+        </div>
+    </div>
+
+    {% set p = profil_recherche %}
+    {% if p.type_contrat or p.specialite %}
+    <div class="profil-hint">
+        Profil actif : <strong>{% if p.type_contrat %}{{ p.type_contrat }}{% endif %}{% if p.niveau %} {{ p.niveau }}{% endif %}{% if p.specialite %} — {{ p.specialite }}{% endif %}</strong>.
+        Les champs correspondants sont pré-remplis. <a href="/profil-recherche" style="color:var(--primary);">Modifier mon profil</a>
+    </div>
+    {% endif %}
+
+    <div id="duplicateAlert" class="duplicate-alert"></div>
+
+    <form method="POST" action="/ajouter">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="section-title">L'entreprise</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Entreprise <span class="req">*</span></label>
+                <input type="text" name="etablissement" id="inputEtab" required placeholder="Nom de l'entreprise" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Contact / Recruteur</label>
+                <input type="text" name="contact" placeholder="Prénom Nom">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" id="inputEmail" placeholder="contact@entreprise.fr" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Téléphone</label>
+                <input type="text" name="telephone" placeholder="06 XX XX XX XX">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ville</label>
+                <input type="text" name="ville" id="inputVille" placeholder="Paris" autocomplete="off">
+                <datalist id="villesList"></datalist>
+            </div>
+            <div class="form-group">
+                <label>Code postal</label>
+                <input type="text" name="code_postal" id="inputCP" placeholder="75001" maxlength="10">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Secteur d'activité</label>
+                <select name="categorie">
+                    <option value="">— Sélectionner —</option>
+                    {% for s in SECTEURS %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Adresse <span style="font-weight:400;opacity:0.6;">(optionnel)</span></label>
+                <input type="text" name="adresse" placeholder="12 rue de la Paix">
+            </div>
+        </div>
+
+        <div class="section-title">La candidature</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Poste visé</label>
+                <input type="text" name="poste" placeholder="Ex : Administrateur systèmes et réseaux">
+            </div>
+            <div class="form-group">
+                <label>Type de contrat</label>
+                <select name="type_contrat">
+                    <option value="">— Sélectionner —</option>
+                    {% for tc in TYPES_CONTRAT %}
+                    <option value="{{ tc }}" {% if profil_recherche.type_contrat == tc %}selected{% endif %}>{{ tc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Plateforme / Source</label>
+                <select name="plateforme">
+                    <option value="">— Sélectionner —</option>
+                    {% for pl in PLATEFORMES %}
+                    <option value="{{ pl }}">{{ pl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Statut initial</label>
+                <select name="statut">
+                    {% for s in STATUTS %}
+                    <option value="{{ s }}" {% if s == 'Candidature envoyée' %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="section-title">Documents envoyés</div>
+        <div class="checkbox-row">
+            <label class="checkbox-item">
+                <input type="checkbox" name="cv_envoye"> CV envoyé
+            </label>
+            <label class="checkbox-item">
+                <input type="checkbox" name="lettre_envoyee"> Lettre de motivation envoyée
+            </label>
+        </div>
+
+        <div class="section-title">Détails de l'offre</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Mode de candidature</label>
+                <select name="mode_candidature" id="inputModeCand">
+                    <option value="">— Sélectionner —</option>
+                    <option value="Via plateforme">Via plateforme (espace candidat)</option>
+                    <option value="Via email">Via email</option>
+                    <option value="Via courrier">Via courrier</option>
+                    <option value="Direct / Spontanée">Direct / Spontanée</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Référence de l'offre</label>
+                <input type="text" name="reference_offre" id="inputRef" placeholder="Ex : 2026-5767">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date limite de candidature</label>
+                <input type="date" name="date_limite_candidature" id="inputDateLimite">
+            </div>
+            <div class="form-group">
+                <label>Date de début souhaitée</label>
+                <input type="date" name="date_debut" id="inputDateDebut">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Durée du contrat</label>
+                <input type="text" name="duree_contrat" id="inputDuree" placeholder="Ex : 2 ans, 6 mois">
+            </div>
+            <div class="form-group">
+                <label>Formation / Niveau requis</label>
+                <input type="text" name="formation_requise" id="inputFormation" placeholder="Ex : BAC+2 GMSI, Licence">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Lien de l'offre</label>
+            <input type="url" name="lien_offre" id="inputLien" placeholder="https://...">
+        </div>
+
+        <div class="section-title">Suivi</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date de relance</label>
+                <input type="date" name="date_relance">
+            </div>
+            <div class="form-group">
+                <!-- vide -->
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Commentaire / Notes</label>
+            <textarea name="commentaire" rows="3" placeholder="Missions, profil recherché, informations complémentaires…"></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <a href="/base" class="btn btn-ghost">Annuler</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Détection doublons
+var dupTimer;
+function checkDuplicate() {
+    var nom = document.getElementById('inputEtab').value.trim();
+    var email = document.getElementById('inputEmail').value.trim();
+    if (!nom && !email) { hideDup(); return; }
+    fetch('/api/check-duplicate?nom=' + encodeURIComponent(nom) + '&email=' + encodeURIComponent(email))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.doublons && data.doublons.length > 0) {
+                var html = '⚠️ Candidature similaire détectée : ';
+                html += data.doublons.map(function(d) {
+                    return '<a href="/prospect/' + d.id + '" target="_blank">' + d.etablissement + (d.poste ? ' — ' + d.poste : '') + '</a> (' + (d.statut || 'sans statut') + ')';
+                }).join(', ');
+                var el = document.getElementById('duplicateAlert');
+                el.innerHTML = html;
+                el.style.display = 'block';
+            } else { hideDup(); }
+        });
+}
+function hideDup() { document.getElementById('duplicateAlert').style.display = 'none'; }
+document.getElementById('inputEtab').addEventListener('input', function() { clearTimeout(dupTimer); dupTimer = setTimeout(checkDuplicate, 500); });
+document.getElementById('inputEmail').addEventListener('input', function() { clearTimeout(dupTimer); dupTimer = setTimeout(checkDuplicate, 500); });
+
+// Autocomplétion ville (API geo.gouv.fr)
+var villeTimer;
+document.getElementById('inputVille').addEventListener('input', function() {
+    clearTimeout(villeTimer);
+    var val = this.value.trim();
+    if (val.length < 2) return;
+    villeTimer = setTimeout(function() {
+        fetch('https://geo.api.gouv.fr/communes?nom=' + encodeURIComponent(val) + '&fields=nom,codesPostaux&limit=6')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var dl = document.getElementById('villesList');
+                dl.innerHTML = '';
+                data.forEach(function(c) {
+                    var opt = document.createElement('option');
+                    opt.value = c.nom;
+                    opt.dataset.cp = (c.codesPostaux && c.codesPostaux[0]) || '';
+                    dl.appendChild(opt);
+                });
+            }).catch(function() {});
+    }, 300);
+});
+document.getElementById('inputVille').addEventListener('change', function() {
+    var dl = document.getElementById('villesList');
+    var opts = dl.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === this.value && opts[i].dataset.cp) {
+            document.getElementById('inputCP').value = opts[i].dataset.cp;
+            break;
+        }
+    }
+});
+
+// ── Remplissage automatique ──────────────────
+function setStatus(msg, type) {
+    var el = document.getElementById('autofillStatus');
+    el.textContent = msg;
+    el.className = 'autofill-status' + (type ? ' ' + type : '');
+}
+
+function fillField(selector, value, isSelect) {
+    var el = document.querySelector(selector);
+    if (!el || !value) return;
+    el.value = value;
+    el.classList.remove('field-filled');
+    void el.offsetWidth;
+    el.classList.add('field-filled');
+    if (isSelect) el.dispatchEvent(new Event('change'));
+}
+
+function doAutoFill() {
+    var source = document.getElementById('autofillSource').value.trim();
+    if (!source) { setStatus('Collez une URL ou un texte.', 'error'); return; }
+    var btn = document.getElementById('autofillBtn');
+    btn.disabled = true;
+    setStatus('Analyse en cours…');
+
+    fetch('/api/extract-offre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: source, csrf_token: '{{ csrf_token }}' })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        if (!res.ok) { setStatus(res.data.error || 'Erreur inconnue.', 'error'); btn.disabled = false; return; }
+        var d = res.data;
+        // Champs entreprise
+        fillField('[name=etablissement]', d.entreprise);
+        fillField('[name=contact]', d.contact);
+        fillField('[name=email]', d.email_contact);
+        fillField('[name=telephone]', d.telephone);
+        fillField('[name=adresse]', d.adresse);
+        fillField('[name=ville]', d.ville);
+        fillField('[name=code_postal]', d.code_postal);
+        // Champs candidature
+        fillField('[name=poste]', d.poste);
+        if (d.type_contrat) fillField('[name=type_contrat]', d.type_contrat, true);
+        if (d.secteur) fillField('[name=categorie]', d.secteur, true);
+        if (d.plateforme) fillField('[name=plateforme]', d.plateforme, true);
+        // Nouveaux champs détail offre
+        if (d.mode_candidature) fillField('[name=mode_candidature]', d.mode_candidature, true);
+        fillField('[name=reference_offre]', d.reference_offre);
+        fillField('[name=date_limite_candidature]', d.date_limite);
+        fillField('[name=date_debut]', d.date_debut);
+        fillField('[name=duree_contrat]', d.duree_contrat);
+        fillField('[name=formation_requise]', d.formation_requise);
+        if (d.lien_offre) fillField('[name=lien_offre]', d.lien_offre);
+        // Commentaire (ne remplace pas si déjà rempli)
+        if (d.commentaire) {
+            var ta = document.querySelector('[name=commentaire]');
+            if (ta && !ta.value) { ta.value = d.commentaire; ta.classList.add('field-filled'); }
+        }
+        var filled = Object.values(d).filter(function(v){ return v && v !== ''; }).length;
+        setStatus('✓ ' + filled + ' informations extraites — vérifiez et complétez avant de sauvegarder.', 'success');
+        checkDuplicate();
+        btn.disabled = false;
+    })
+    .catch(function() { setStatus('Erreur réseau.', 'error'); btn.disabled = false; });
+}
+document.getElementById('autofillSource').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doAutoFill(); }
+});
+</script>
+</body></html>

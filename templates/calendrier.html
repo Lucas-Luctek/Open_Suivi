@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Agenda - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.container { max-width: 1200px; margin: 28px auto; background: var(--card); padding: 28px; border-radius: 8px; border: 1px solid var(--border); }
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+h2 { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 12px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+.form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+input, select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 11px; font-size: 0.88rem; font-family: inherit; outline: none; }
+input:focus, select:focus { border-color: var(--primary); }
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: 0.15s; text-decoration: none; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 5px 10px; font-size: 0.8rem; }
+.btn-danger:hover { background: var(--danger); color: white; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; background: var(--bg); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-relance { background: rgba(220,38,38,0.1); color: var(--danger); border: 1px solid rgba(220,38,38,0.2); }
+.badge-event { background: rgba(30,64,175,0.1); color: var(--primary); border: 1px solid rgba(30,64,175,0.2); }
+.badge-entretien { background: rgba(139,92,246,0.1); color: #7c3aed; border: 1px solid rgba(139,92,246,0.2); }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { margin: 8px; padding: 16px; } }
+</style>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+    <h1>Agenda</h1>
+
+    <!-- Abonnement iCal -->
+    {% if ical_token %}
+    <div class="card" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px;margin-bottom:8px;background:rgba(30,64,175,0.04);border-color:rgba(30,64,175,0.2);">
+        <div style="flex:1;min-width:200px;">
+            <div style="font-weight:600;font-size:0.88rem;margin-bottom:3px;">Abonnement calendrier</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">Ajoutez vos relances et événements à votre iPhone, Google Calendar, Outlook&hellip;</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input id="ical-url" type="text" readonly
+                value="{{ request.host_url }}calendrier/feed/{{ ical_token }}.ics"
+                style="font-size:0.78rem;width:320px;cursor:pointer;color:var(--text-muted);"
+                onclick="this.select();">
+            <button onclick="copyIcal()" class="btn btn-primary" style="white-space:nowrap;">Copier le lien</button>
+            <a href="webcal://{{ request.host }}/calendrier/feed/{{ ical_token }}.ics"
+               class="btn" style="background:#16a34a;color:white;white-space:nowrap;">
+                Ajouter sur iPhone
+            </a>
+        </div>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 16px 4px;">
+        Le lien est privé et unique — ne le partagez pas. Les événements se synchronisent automatiquement.
+    </p>
+    {% endif %}
+
+    <!-- Calendrier -->
+    <div class="card" style="padding:20px;margin-bottom:24px;">
+        <div id="calendar"></div>
+    </div>
+
+    <!-- Ajouter un événement -->
+    <h2>Ajouter un rendez-vous / événement</h2>
+    <div class="card">
+        <form action="/calendrier/ajouter" method="POST" class="form-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-group" style="flex:2;min-width:200px;">
+                <label>Titre</label>
+                <input type="text" name="titre" list="p-list" autocomplete="off" required placeholder="Entretien chez …, Appel RH…">
+                <datalist id="p-list">{% for p in tous_prospects %}<option value="{{ p.etablissement }}{% if p.poste %} — {{ p.poste }}{% endif %}">{% endfor %}</datalist>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date_event" required>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="type_event">
+                    <option>Entretien</option>
+                    <option>RDV téléphonique</option>
+                    <option>Test technique</option>
+                    <option>Relance prévue</option>
+                    <option>Formation / École</option>
+                    <option>Autre</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Ajouter</button>
+        </form>
+    </div>
+
+    <!-- Relances à venir -->
+    {% if relances %}
+    <h2>Relances planifiées ({{ relances|length }})</h2>
+    <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+            <thead><tr><th>Entreprise</th><th>Poste</th><th>Date relance</th><th>Statut</th></tr></thead>
+            <tbody>
+            {% for r in relances | sort(attribute='date_relance') %}
+            <tr>
+                <td><a href="/prospect/{{ r.id }}">{{ r.etablissement }}</a></td>
+                <td style="color:var(--text-muted);">{{ r.poste or '—' }}</td>
+                <td><span class="badge badge-relance">{{ r.date_relance }}</span></td>
+                <td style="color:var(--text-muted);font-size:0.82rem;">—</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Événements manuels -->
+    {% if evenements %}
+    <h2>Événements planifiés ({{ evenements|length }})</h2>
+    <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+            <thead><tr><th>Titre</th><th>Date</th><th>Type</th><th></th></tr></thead>
+            <tbody>
+            {% for e in evenements | sort(attribute='date_event') %}
+            <tr>
+                <td><strong>{{ e.titre }}</strong></td>
+                <td>{{ e.date_event }}</td>
+                <td><span class="badge {% if 'Entretien' in e.type_event %}badge-entretien{% else %}badge-event{% endif %}">{{ e.type_event }}</span></td>
+                <td style="text-align:right;">
+                    <form action="/calendrier/supprimer/{{ e.id }}" method="POST" style="margin:0;" onsubmit="return confirm('Supprimer cet événement ?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyIcal() {
+    var input = document.getElementById('ical-url');
+    navigator.clipboard.writeText(input.value).then(function() {
+        var btn = event.target;
+        var orig = btn.textContent;
+        btn.textContent = 'Copié !';
+        setTimeout(function() { btn.textContent = orig; }, 1800);
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var events = [
+        {% for r in relances %}
+        { title: 'Relance : {{ r.etablissement|replace("'", "\\'")|replace('"', '\\"') }}', start: '{{ r.date_relance }}', url: '/prospect/{{ r.id }}', backgroundColor: '#dc2626', borderColor: '#dc2626' },
+        {% endfor %}
+        {% for e in evenements %}
+        { title: {{ e.titre|tojson|safe }}, start: '{{ e.date_event }}',
+          backgroundColor: '{% if "Entretien" in e.type_event %}#7c3aed{% else %}#1e40af{% endif %}',
+          borderColor: '{% if "Entretien" in e.type_event %}#7c3aed{% else %}#1e40af{% endif %}' },
+        {% endfor %}
+    ];
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        firstDay: 1,
+        events: events,
+        eventClick: function(info) {
+            if (info.event.url) { info.jsEvent.preventDefault(); window.location.href = info.event.url; }
+        },
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' }
+    });
+    calendar.render();
+});
+</script>
+</body></html>

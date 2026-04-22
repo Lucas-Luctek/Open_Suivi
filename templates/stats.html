@@ -1,0 +1,148 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Statistiques - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.container { max-width: 1200px; margin: 28px auto; padding: 0 16px; }
+h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+h2 { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 16px; text-align: center; }
+.kpi-value { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; }
+.kpi-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-size: 0.82rem; min-width: 160px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-wrap { flex: 1; background: var(--bg); border-radius: 4px; height: 18px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.bar-count { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); min-width: 28px; text-align: right; }
+.week-grid { display: flex; gap: 4px; align-items: flex-end; height: 80px; }
+.week-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.week-bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.4s; }
+.week-lbl { font-size: 0.6rem; color: var(--text-muted); white-space: nowrap; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+    <h1>Statistiques</h1>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi">
+            <div class="kpi-value">{{ total }}</div>
+            <div class="kpi-label">Candidatures actives</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" style="color:var(--success);">{{ entretiens }}</div>
+            <div class="kpi-label">Entretiens obtenus</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" style="color:var(--accent);">{{ offres }}</div>
+            <div class="kpi-label">Offres reçues</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" style="color:var(--danger);">{{ refus }}</div>
+            <div class="kpi-label">Refus</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" style="color:var(--primary);">{{ taux_reponse }}%</div>
+            <div class="kpi-label">Taux de réponse</div>
+        </div>
+        {% if delai_moyen %}
+        <div class="kpi">
+            <div class="kpi-value" style="color:var(--warning);">{{ delai_moyen }}j</div>
+            <div class="kpi-label">Délai moyen avant entretien</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Activité par semaine -->
+    {% if par_semaine %}
+    <div class="card">
+        <h2>Candidatures envoyées — 12 dernières semaines</h2>
+        {% set max_n = par_semaine | map(attribute='n') | max %}
+        <div class="week-grid">
+            {% for row in par_semaine %}
+            {% set pct = (row.n * 100 / max_n) if max_n > 0 else 0 %}
+            <div class="week-col">
+                <span style="font-size:0.7rem;color:var(--text-muted);font-weight:700;">{{ row.n }}</span>
+                <div class="week-bar" style="height:{{ [pct * 0.6, 3] | max }}px;"></div>
+                <span class="week-lbl">{{ row.semaine[-3:] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid-2">
+        <!-- Par statut -->
+        <div class="card">
+            <h2>Par statut</h2>
+            {% set max_s = by_statut | map(attribute='n') | max if by_statut else 1 %}
+            {% set colors = ['#1e40af','#d97706','#7c3aed','#7c3aed','#0f766e','#16a34a','#dc2626','#64748b'] %}
+            {% for row in by_statut %}
+            {% set pct = (row.n * 100 / max_s) if max_s > 0 else 0 %}
+            <div class="bar-row">
+                <span class="bar-label" title="{{ row.statut or 'Non défini' }}">{{ row.statut or 'Non défini' }}</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:{{ pct }}%;background:{{ colors[loop.index0 % colors|length] }};"></div></div>
+                <span class="bar-count">{{ row.n }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Par plateforme -->
+        <div class="card">
+            <h2>Par plateforme</h2>
+            {% set max_p = by_plateforme | map(attribute='n') | max if by_plateforme else 1 %}
+            {% for row in by_plateforme %}
+            {% set pct = (row.n * 100 / max_p) if max_p > 0 else 0 %}
+            <div class="bar-row">
+                <span class="bar-label">{{ row.plateforme }}</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:{{ pct }}%;background:var(--primary);"></div></div>
+                <span class="bar-count">{{ row.n }}</span>
+            </div>
+            {% endfor %}
+            {% if not by_plateforme %}<p style="color:var(--text-muted);font-size:0.85rem;">Aucune donnée.</p>{% endif %}
+        </div>
+
+        <!-- Par secteur -->
+        <div class="card">
+            <h2>Par secteur</h2>
+            {% set max_sec = by_secteur | map(attribute='n') | max if by_secteur else 1 %}
+            {% for row in by_secteur %}
+            {% set pct = (row.n * 100 / max_sec) if max_sec > 0 else 0 %}
+            <div class="bar-row">
+                <span class="bar-label">{{ row.categorie }}</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:{{ pct }}%;background:#7c3aed;"></div></div>
+                <span class="bar-count">{{ row.n }}</span>
+            </div>
+            {% endfor %}
+            {% if not by_secteur %}<p style="color:var(--text-muted);font-size:0.85rem;">Aucune donnée.</p>{% endif %}
+        </div>
+
+        <!-- Par type contrat -->
+        <div class="card">
+            <h2>Par type de contrat</h2>
+            {% set max_c = by_contrat | map(attribute='n') | max if by_contrat else 1 %}
+            {% for row in by_contrat %}
+            {% set pct = (row.n * 100 / max_c) if max_c > 0 else 0 %}
+            <div class="bar-row">
+                <span class="bar-label">{{ row.type_contrat }}</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:{{ pct }}%;background:#0f766e;"></div></div>
+                <span class="bar-count">{{ row.n }}</span>
+            </div>
+            {% endfor %}
+            {% if not by_contrat %}<p style="color:var(--text-muted);font-size:0.85rem;">Aucune donnée.</p>{% endif %}
+        </div>
+    </div>
+
+    <div style="text-align:center;margin-top:8px;margin-bottom:24px;">
+        <a href="/export/xlsx" class="btn" style="background:var(--success);color:white;padding:9px 20px;border-radius:6px;font-size:0.9rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;">Exporter en Excel</a>
+        <a href="/export" class="btn" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:9px 20px;border-radius:6px;font-size:0.9rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-left:10px;">Exporter en CSV</a>
+    </div>
+</div>
+</body></html>

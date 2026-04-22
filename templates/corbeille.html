@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Corbeille - {{ company_name }}</title><style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706;}
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
+.container { max-width: 1100px; margin: 32px auto; background: var(--card); padding: 28px 32px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+h1 { color: var(--text); font-weight: 600; margin: 0; font-size: 1.4rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; background: var(--bg);}
+.btn { background-color: var(--primary); color: #ffffff; border: none; cursor: pointer; font-weight: 500; font-size: 0.88rem; padding: 7px 14px; border-radius: 6px; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+.btn:hover { background-color: var(--primary-hover); }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: var(--bg); color: var(--text-muted); border: 1px solid var(--border);}
+@media (max-width: 768px) { .container { margin: 8px; padding: 16px; } }
+</style></head>
+<body class="{% if theme == 'dark' %}dark-mode{% endif %}">{% include '_navbar.html' %}
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <div>
+            <h1>Corbeille</h1>
+            <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.88rem;">{{ prospects|length }} candidature{{ 's' if prospects|length > 1 else '' }} archivée{{ 's' if prospects|length > 1 else '' }}</p>
+        </div>
+        <a href="/base" class="btn btn-outline btn-sm">← Retour aux candidatures</a>
+    </div>
+
+    {% if not prospects %}
+    <p style="color:var(--text-muted); text-align:center; padding:40px; font-style:italic;">La corbeille est vide.</p>
+    {% else %}
+    <table>
+        <thead><tr><th>Entreprise</th><th>Poste</th><th>Statut</th><th>Secteur</th><th>Archivée le</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for p in prospects %}
+        <tr>
+            <td>
+                <strong>{{ p.etablissement }}</strong>
+                {% if p.ville %}<br><span style="font-size:0.8rem; color:var(--text-muted);">{{ p.ville }}</span>{% endif %}
+            </td>
+            <td style="color:var(--text-muted);">{{ p.poste or '—' }}</td>
+            <td>{% if p.statut %}<span class="badge">{{ p.statut }}</span>{% else %}—{% endif %}</td>
+            <td style="color:var(--text-muted); font-size:0.82rem;">{{ p.categorie or '—' }}</td>
+            <td style="color:var(--text-muted); font-size:0.82rem;">{{ p.date_ajout[:10] if p.date_ajout else '—' }}</td>
+            <td>
+                <div style="display:flex; gap:6px;">
+                    <form action="/prospect/{{ p.id }}/restaurer" method="POST" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm" title="Restaurer cette candidature">↩ Restaurer</button>
+                    </form>
+                    {% if session['role'] == 'admin' %}
+                    <form action="/prospect/{{ p.id }}/supprimer" method="POST" style="margin:0;" onsubmit="return confirm('Supprimer définitivement cette candidature ? Cette action est irréversible.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+</body></html>

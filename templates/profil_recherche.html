@@ -1,0 +1,114 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Mon Profil de Recherche - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.container { max-width: 760px; margin: 32px auto; background: var(--card); padding: 32px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 6px; }
+.subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 28px; line-height: 1.5; }
+.form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+.form-section:last-of-type { border-bottom: none; }
+.section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+input, select, textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 12px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: 0.15s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+.alert-success { background: rgba(22,163,74,0.1); border: 1px solid rgba(22,163,74,0.3); color: var(--success); }
+.preview-box { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+.preview-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; margin-bottom: 10px; }
+.preview-content { display: flex; flex-wrap: wrap; gap: 20px; }
+.preview-item { }
+.preview-item-label { font-size: 0.7rem; opacity: 0.7; }
+.preview-item-val { font-weight: 600; }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .container { margin: 8px; padding: 16px; } }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+    <h1>Mon Profil de Recherche</h1>
+    <p class="subtitle">Ces informations décrivent ce que tu recherches. Elles s'affichent en bannière sur le tableau de bord et se pré-remplissent automatiquement dans tes formulaires de candidature.</p>
+
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+
+    <!-- Aperçu de la bannière -->
+    {% if profil.type_contrat or profil.niveau or profil.specialite %}
+    <div class="preview-box">
+        <div class="preview-title">Aperçu — Bannière du tableau de bord</div>
+        <div class="preview-content">
+            {% if profil.type_contrat %}<div class="preview-item"><div class="preview-item-label">Recherche</div><div class="preview-item-val">{{ profil.type_contrat }}</div></div>{% endif %}
+            {% if profil.niveau or profil.specialite %}<div class="preview-item"><div class="preview-item-label">Formation</div><div class="preview-item-val">{% if profil.niveau %}{{ profil.niveau }}{% endif %}{% if profil.niveau and profil.specialite %} — {% endif %}{% if profil.specialite %}{{ profil.specialite }}{% endif %}</div></div>{% endif %}
+            {% if profil.ecole %}<div class="preview-item"><div class="preview-item-label">École</div><div class="preview-item-val">{{ profil.ecole }}</div></div>{% endif %}
+            {% if profil.dispo %}<div class="preview-item"><div class="preview-item-label">Dispo</div><div class="preview-item-val">{{ profil.dispo }}</div></div>{% endif %}
+            {% if profil.localisation %}<div class="preview-item"><div class="preview-item-label">Zone</div><div class="preview-item-val">{{ profil.localisation }}</div></div>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-section">
+            <div class="section-title">Ce que tu recherches</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type de contrat recherché</label>
+                    <select name="profil_type_contrat">
+                        <option value="">— Sélectionner —</option>
+                        {% for tc in TYPES_CONTRAT %}
+                        <option value="{{ tc }}" {% if profil.type_contrat == tc %}selected{% endif %}>{{ tc }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Localisation souhaitée</label>
+                    <input type="text" name="profil_localisation" value="{{ profil.localisation }}" placeholder="Ex : Paris / Île-de-France">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Disponibilité</label>
+                    <input type="text" name="profil_dispo" value="{{ profil.dispo }}" placeholder="Ex : Septembre 2025">
+                </div>
+                <div class="form-group">
+                    <label>Prétentions salariales <span style="font-weight:400;opacity:0.6;">(optionnel)</span></label>
+                    <input type="text" name="profil_salaire" value="{{ profil.salaire }}" placeholder="Ex : 650€/mois alternance">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-title">Ta formation</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Niveau / Diplôme préparé</label>
+                    <input type="text" name="profil_niveau" value="{{ profil.niveau }}" placeholder="Ex : Bachelor 3, BTS, Master 1">
+                </div>
+                <div class="form-group">
+                    <label>Spécialité / Domaine</label>
+                    <input type="text" name="profil_specialite" value="{{ profil.specialite }}" placeholder="Ex : Administration Systèmes et Réseaux">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Établissement de formation</label>
+                    <input type="text" name="profil_ecole" value="{{ profil.ecole }}" placeholder="Ex : YNOV Campus Lyon">
+                </div>
+                <div class="form-group">
+                    <label>Rythme alternance <span style="font-weight:400;opacity:0.6;">(si concerné)</span></label>
+                    <input type="text" name="profil_rythme" value="{{ profil.rythme }}" placeholder="Ex : 3 sem. entreprise / 1 sem. école">
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enregistrer mon profil</button>
+    </form>
+</div>
+</body></html>

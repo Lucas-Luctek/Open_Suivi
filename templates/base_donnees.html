@@ -1,0 +1,286 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Candidatures - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.container { max-width: 1400px; margin: 28px auto; background: var(--card); padding: 28px; border-radius: 8px; border: 1px solid var(--border); }
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: flex-end; }
+.filters select, .filters input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 0.85rem; font-family: inherit; outline: none; }
+.filters select:focus, .filters input:focus { border-color: var(--primary); }
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: 0.15s; text-decoration: none; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); text-decoration: none; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.btn-ghost:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; padding: 10px 12px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:hover td { background: var(--bg); }
+th a { color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+th a:hover { color: var(--primary); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.b-envoye    { background: rgba(59,130,246,0.1); color: #2563eb; }
+.b-relance   { background: rgba(245,158,11,0.12); color: #d97706; }
+.b-entretien { background: rgba(139,92,246,0.12); color: #7c3aed; }
+.b-offre     { background: rgba(22,163,74,0.12); color: #15803d; }
+.b-refus     { background: rgba(220,38,38,0.1); color: #dc2626; }
+.b-desist    { background: rgba(100,116,139,0.12); color: #64748b; }
+.b-test      { background: rgba(20,184,166,0.12); color: #0f766e; }
+.b-default   { background: rgba(100,116,139,0.1); color: #64748b; }
+.cv-dot { width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:2px; }
+.cv-yes { background:#16a34a; }
+.cv-no  { background:#cbd5e1; }
+.pagination { display: flex; gap: 6px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; text-decoration: none; border: 1px solid var(--border); color: var(--text-muted); }
+.pagination a:hover { border-color: var(--primary); color: var(--primary); }
+.pagination .current { background: var(--primary); color: white; border-color: var(--primary); }
+.note-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+.note-modal.open { display: flex; }
+.note-modal-inner { background: var(--card); border-radius: 10px; padding: 20px; width: 380px; max-width: 96vw; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+.desktop-table { display: block; }
+.mobile-cards  { display: none; }
+
+@media (max-width: 768px) {
+  .container { margin: 0; padding: 12px; border-radius: 0; border-left: none; border-right: none; }
+  h1 { font-size: 1.1rem; margin-bottom: 12px; }
+  .filters { gap: 6px; }
+  .filters input[type="text"] { width: 100% !important; }
+  .filters select { flex: 1; min-width: 0; }
+  .desktop-table { display: none; }
+  .mobile-cards  { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+}
+
+/* Cartes mobile */
+.cand-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.cand-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cand-name {
+  font-weight: 600;
+  font-size: 0.97rem;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.3;
+}
+.cand-name:hover { color: var(--primary); }
+.cand-poste {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.cand-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.cand-meta span { display: flex; align-items: center; gap: 4px; }
+.cand-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.cand-limit {
+  font-size: 0.75rem;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+    <h1>
+        Mes Candidatures
+        <span style="font-size:0.88rem;font-weight:400;color:var(--text-muted);">{{ total_count }} résultat{{ 's' if total_count != 1 }}</span>
+        <a href="/nouveau" class="btn btn-primary btn-sm" style="margin-left:auto;">+ Nouvelle</a>
+    </h1>
+
+    <form method="GET" action="/base" class="filters">
+        <input type="text" name="q" value="{{ q }}" placeholder="Rechercher…" style="width:180px;">
+        <select name="statut">
+            <option value="">Tous statuts</option>
+            {% for s in STATUTS %}
+            <option value="{{ s }}" {% if f_statut == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <select name="type_contrat">
+            <option value="">Tous contrats</option>
+            {% for tc in TYPES_CONTRAT %}
+            <option value="{{ tc }}" {% if f_type_contrat == tc %}selected{% endif %}>{{ tc }}</option>
+            {% endfor %}
+        </select>
+        <select name="secteur">
+            <option value="">Tous secteurs</option>
+            {% for s in secteurs %}
+            <option value="{{ s }}" {% if f_secteur == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="ville" value="{{ f_ville }}" placeholder="Ville…" style="width:110px;">
+        <button type="submit" class="btn btn-primary">Filtrer</button>
+        {% if q or f_statut or f_type_contrat or f_secteur or f_ville or f_tag %}
+        <a href="/base" class="btn btn-ghost">✕ Effacer</a>
+        {% endif %}
+    </form>
+
+    {% set today = '' %}
+    {% if prospects %}
+    <div class="desktop-table" style="overflow-x:auto;">
+    <table>
+        <thead><tr>
+            <th><a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort=etablissement&order={{ 'desc' if sort == 'etablissement' and order == 'asc' else 'asc' }}">Entreprise {% if sort == 'etablissement' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th>Poste</th>
+            <th class="col-hide">Contrat</th>
+            <th><a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort=statut&order={{ 'desc' if sort == 'statut' and order == 'asc' else 'asc' }}">Statut {% if sort == 'statut' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th class="col-hide">CV / LM</th>
+            <th class="col-hide">Secteur</th>
+            <th class="col-hide">Ville</th>
+            <th><a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort=date_relance&order={{ 'desc' if sort == 'date_relance' and order == 'asc' else 'asc' }}">Relance {% if sort == 'date_relance' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th class="col-hide"><a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort=date_ajout&order={{ 'desc' if sort == 'date_ajout' and order == 'asc' else 'asc' }}">Envoyée le {% if sort == 'date_ajout' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th>Actions</th>
+        </tr></thead>
+        <tbody>
+        {% for p in prospects %}
+        {% set s = p.statut or '' %}
+        <tr>
+            <td>
+                <a href="/prospect/{{ p.id }}" style="font-weight:500;">{{ p.etablissement }}</a>
+                {% if p.plateforme %}<div style="font-size:0.72rem;color:var(--text-muted);">{{ p.plateforme }}</div>{% endif %}
+                {% if p.date_limite_candidature and p.date_limite_candidature <= today_plus3 and p.date_limite_candidature >= today_str %}
+                <div style="font-size:0.7rem;color:var(--danger);font-weight:700;">Limite : {{ p.date_limite_candidature }}</div>
+                {% endif %}
+            </td>
+            <td style="color:var(--text-muted);">{{ p.poste or '—' }}</td>
+            <td class="col-hide"><span style="font-size:0.8rem;color:var(--text-muted);">{{ p.type_contrat or '—' }}</span></td>
+            <td>
+                {% if 'envoyée' in s %}<span class="badge b-envoye">{{ s }}</span>
+                {% elif 'Relance' in s %}<span class="badge b-relance">{{ s }}</span>
+                {% elif 'téléphonique' in s %}<span class="badge b-entretien">{{ s }}</span>
+                {% elif 'présentiel' in s %}<span class="badge b-entretien">{{ s }}</span>
+                {% elif 'Test' in s %}<span class="badge b-test">{{ s }}</span>
+                {% elif 'Offre' in s %}<span class="badge b-offre">{{ s }}</span>
+                {% elif 'Refus' in s %}<span class="badge b-refus">{{ s }}</span>
+                {% elif 'Désistement' in s %}<span class="badge b-desist">{{ s }}</span>
+                {% elif s %}<span class="badge b-default">{{ s }}</span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="col-hide">
+                <span title="CV envoyé"><span class="cv-dot {{ 'cv-yes' if p.cv_envoye else 'cv-no' }}"></span>CV</span>
+                &nbsp;
+                <span title="Lettre de motivation"><span class="cv-dot {{ 'cv-yes' if p.lettre_envoyee else 'cv-no' }}"></span>LM</span>
+            </td>
+            <td class="col-hide" style="font-size:0.8rem;color:var(--text-muted);">{{ p.categorie or '—' }}</td>
+            <td class="col-hide" style="font-size:0.82rem;color:var(--text-muted);">{{ p.ville or '—' }}</td>
+            <td style="font-size:0.82rem;color:var(--text-muted);">{{ p.date_relance or '—' }}</td>
+            <td class="col-hide" style="font-size:0.82rem;">
+                {{ p.date_ajout[:10] if p.date_ajout else '—' }}
+                {% if p.derniere_activite %}<div style="font-size:0.72rem;color:var(--text-muted);">activité : {{ p.derniere_activite }}</div>{% endif %}
+            </td>
+            <td>
+                <div style="display:flex;gap:4px;">
+                    <a href="/prospect/{{ p.id }}" class="btn btn-ghost btn-sm">Voir</a>
+                    <button onclick="openNote({{ p.id }}, '{{ p.etablissement|replace("'","\\'")|e }}')" class="btn btn-ghost btn-sm" title="Note rapide">📝</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    <!-- Cartes mobiles -->
+    <div class="mobile-cards">
+    {% for p in prospects %}
+    {% set s = p.statut or '' %}
+    <div class="cand-card">
+        <div class="cand-card-top">
+            <a href="/prospect/{{ p.id }}" class="cand-name">{{ p.etablissement }}</a>
+            {% if 'envoyée' in s %}<span class="badge b-envoye">{{ s }}</span>
+            {% elif 'Relance' in s %}<span class="badge b-relance">{{ s }}</span>
+            {% elif 'téléphonique' in s %}<span class="badge b-entretien">{{ s }}</span>
+            {% elif 'présentiel' in s %}<span class="badge b-entretien">{{ s }}</span>
+            {% elif 'Test' in s %}<span class="badge b-test">{{ s }}</span>
+            {% elif 'Offre' in s %}<span class="badge b-offre">{{ s }}</span>
+            {% elif 'Refus' in s %}<span class="badge b-refus">{{ s }}</span>
+            {% elif 'Désistement' in s %}<span class="badge b-desist">{{ s }}</span>
+            {% elif s %}<span class="badge b-default">{{ s }}</span>{% endif %}
+        </div>
+        {% if p.poste %}<div class="cand-poste">{{ p.poste }}{% if p.type_contrat %} · {{ p.type_contrat }}{% endif %}</div>{% endif %}
+        {% if p.date_limite_candidature and p.date_limite_candidature <= today_plus3 and p.date_limite_candidature >= today_str %}
+        <div class="cand-limit">⚠ Limite : {{ p.date_limite_candidature }}</div>
+        {% endif %}
+        <div class="cand-meta">
+            <span>📅 {{ p.date_ajout[:10] if p.date_ajout else '—' }}</span>
+            {% if p.date_relance %}<span>🔔 Relance : {{ p.date_relance }}</span>{% endif %}
+            {% if p.ville %}<span>📍 {{ p.ville }}</span>{% endif %}
+        </div>
+        <div class="cand-actions">
+            <a href="/prospect/{{ p.id }}" class="btn btn-primary btn-sm">Voir</a>
+            <button onclick="openNote({{ p.id }}, '{{ p.etablissement|replace("'","\\'")|e }}')" class="btn btn-ghost btn-sm">📝</button>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}<a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort={{ sort }}&order={{ order }}&page={{ page - 1 }}">‹</a>{% endif %}
+        {% for i in range(1, total_pages + 1) %}
+            {% if i == page %}<span class="current">{{ i }}</span>
+            {% elif i <= 2 or i >= total_pages - 1 or (i >= page - 2 and i <= page + 2) %}<a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort={{ sort }}&order={{ order }}&page={{ i }}">{{ i }}</a>
+            {% elif i == 3 and page > 5 %}<span>…</span>
+            {% elif i == total_pages - 2 and page < total_pages - 4 %}<span>…</span>{% endif %}
+        {% endfor %}
+        {% if page < total_pages %}<a href="?q={{ q }}&statut={{ f_statut }}&secteur={{ f_secteur }}&type_contrat={{ f_type_contrat }}&ville={{ f_ville }}&sort={{ sort }}&order={{ order }}&page={{ page + 1 }}">›</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+        <div style="margin-bottom:16px;">Aucune candidature trouvée.</div>
+        <a href="/nouveau" class="btn btn-primary">Ajouter une candidature</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="note-modal" id="noteModal">
+    <div class="note-modal-inner">
+        <div style="font-weight:600;margin-bottom:12px;">Note rapide — <span id="noteModalTitle"></span></div>
+        <form method="POST" id="noteModalForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <textarea name="note" rows="3" placeholder="Saisir une note…" id="noteModalText" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px;font-family:inherit;font-size:0.9rem;resize:vertical;outline:none;"></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+                <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="closeNote()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function openNote(id, name) {
+    document.getElementById('noteModalTitle').textContent = name;
+    document.getElementById('noteModalForm').action = '/prospect/' + id + '/note-rapide';
+    document.getElementById('noteModalText').value = '';
+    document.getElementById('noteModal').classList.add('open');
+    setTimeout(function() { document.getElementById('noteModalText').focus(); }, 50);
+}
+function closeNote() { document.getElementById('noteModal').classList.remove('open'); }
+document.getElementById('noteModal').addEventListener('click', function(e) { if (e.target === this) closeNote(); });
+</script>
+</body></html>

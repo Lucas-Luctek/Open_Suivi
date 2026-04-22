@@ -1,0 +1,380 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>{{ prospect.etablissement }} - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706;}
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
+.container { max-width: 920px; margin: 28px auto; padding: 0 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px 0; }
+h2 { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; margin-top: 0; }
+.form-group { margin-bottom: 14px; display: flex; flex-direction: column; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+label { font-size: 0.76rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: block; }
+input, select, textarea { padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-family: inherit; width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+.btn { background-color: var(--primary); color: #ffffff; border: none; cursor: pointer; font-weight: 500; font-size: 0.9rem; padding: 9px 16px; border-radius: 6px; transition: 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
+.btn:hover { background-color: var(--primary-hover); text-decoration: none; }
+.btn-outline { background-color: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background-color: var(--bg); }
+.btn-danger { background-color: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.btn-danger:hover { background-color: var(--danger); color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+.b-envoye    { background: rgba(59,130,246,0.1); color: #2563eb; border:1px solid rgba(59,130,246,0.3); }
+.b-relance   { background: rgba(245,158,11,0.12); color: #d97706; border:1px solid rgba(245,158,11,0.3); }
+.b-entretien { background: rgba(139,92,246,0.12); color: #7c3aed; border:1px solid rgba(139,92,246,0.3); }
+.b-offre     { background: rgba(22,163,74,0.12); color: #15803d; border:1px solid rgba(22,163,74,0.3); }
+.b-refus     { background: rgba(220,38,38,0.1); color: #dc2626; border:1px solid rgba(220,38,38,0.3); }
+.b-desist    { background: rgba(100,116,139,0.12); color: #64748b; border:1px solid rgba(100,116,139,0.3); }
+.b-test      { background: rgba(20,184,166,0.12); color: #0f766e; border:1px solid rgba(20,184,166,0.3); }
+.b-default   { background: rgba(100,116,139,0.1); color: #64748b; border:1px solid rgba(100,116,139,0.2); }
+.badge-blue  { background: rgba(30,64,175,0.1); color: var(--primary); border:1px solid rgba(30,64,175,0.2); }
+.badge-gray  { background: var(--bg); color: var(--text-muted); border:1px solid var(--border); }
+.cv-check { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:0.82rem;font-weight:600; }
+.cv-yes { background:rgba(22,163,74,0.1);color:#15803d;border:1px solid rgba(22,163,74,0.3); }
+.cv-no  { background:rgba(100,116,139,0.1);color:#64748b;border:1px solid rgba(100,116,139,0.2); }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--card); border-radius:8px; padding:28px; width:100%; max-width:580px; border:1px solid var(--border); max-height:90vh; overflow-y:auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; background: var(--bg); }
+@media (max-width: 768px) { .container { padding: 10px; } .card { padding: 16px; } .form-row { grid-template-columns: 1fr; } h1 { font-size: 1.2rem; } .prospect-actions { flex-wrap: wrap; gap: 6px !important; } }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+<div class="container">
+
+    <!-- En-tête -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h1>{{ prospect.etablissement }}</h1>
+                {% if prospect.poste %}<div style="font-size:1rem;color:var(--text-muted);margin-bottom:8px;">{{ prospect.poste }}</div>{% endif %}
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                    {% set s = prospect.statut or '' %}
+                    {% if 'envoyée' in s %}<span class="badge b-envoye">{{ s }}</span>
+                    {% elif 'Relance' in s %}<span class="badge b-relance">{{ s }}</span>
+                    {% elif 'téléphonique' in s %}<span class="badge b-entretien">{{ s }}</span>
+                    {% elif 'présentiel' in s %}<span class="badge b-entretien">{{ s }}</span>
+                    {% elif 'Test' in s %}<span class="badge b-test">{{ s }}</span>
+                    {% elif 'Offre' in s %}<span class="badge b-offre">{{ s }}</span>
+                    {% elif 'Refus' in s %}<span class="badge b-refus">{{ s }}</span>
+                    {% elif 'Désistement' in s %}<span class="badge b-desist">{{ s }}</span>
+                    {% elif s %}<span class="badge b-default">{{ s }}</span>{% endif %}
+                    {% if prospect.type_contrat %}<span class="badge badge-gray">{{ prospect.type_contrat }}</span>{% endif %}
+                    {% if prospect.categorie %}<span class="badge badge-gray">{{ prospect.categorie }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="prospect-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a href="/prospect/{{ prospect.id }}/pdf" class="btn btn-outline btn-sm" target="_blank">📄 PDF</a>
+                <a href="/prospect/{{ prospect.id }}/editer" class="btn btn-outline btn-sm">Éditer</a>
+                <form action="/prospect/{{ prospect.id }}/archiver" method="POST" style="margin:0;" onsubmit="return confirm('Archiver cette candidature ?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--warning);">Archiver</button>
+                </form>
+                {% if session['role'] == 'admin' %}
+                <form action="/prospect/{{ prospect.id }}/supprimer" method="POST" style="margin:0;" onsubmit="return confirm('Supprimer définitivement cette candidature ?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Documents envoyés -->
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+            <span class="cv-check {{ 'cv-yes' if prospect.cv_envoye else 'cv-no' }}">{{ '✓' if prospect.cv_envoye else '○' }} CV</span>
+            <span class="cv-check {{ 'cv-yes' if prospect.lettre_envoyee else 'cv-no' }}">{{ '✓' if prospect.lettre_envoyee else '○' }} Lettre de motivation</span>
+        </div>
+    </div>
+
+    <!-- Infos détaillées -->
+    <div class="card">
+        <div class="form-row">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div><label>Contact / Recruteur</label><div style="font-weight:500;">{{ prospect.contact or '—' }}</div></div>
+                <div><label>Téléphone</label><div>{{ prospect.telephone|tel or '—' }}</div></div>
+                <div><label>Email</label><div>{{ prospect.email or '—' }}</div></div>
+                <div><label>Adresse</label><div>{{ (prospect.adresse or '') + (' ' + prospect.code_postal if prospect.code_postal else '') + (' ' + prospect.ville if prospect.ville else '') or '—' }}</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div><label>Plateforme / Source</label><div>{{ prospect.plateforme or '—' }}</div></div>
+                <div><label>Prochaine relance</label><div style="color:var(--danger);font-weight:600;">{{ prospect.date_relance or 'Non planifiée' }}</div></div>
+                <div><label>Date de candidature</label><div style="font-weight:600;">{{ prospect.date_ajout[:10] if prospect.date_ajout else '—' }}</div></div>
+            </div>
+        </div>
+
+        {% if prospect.commentaire %}
+        <div style="margin-top:16px;">
+            <label>Notes & Commentaires</label>
+            <div style="padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);white-space:pre-wrap;font-size:0.9rem;">{{ prospect.commentaire }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Dates importantes -->
+        {% if prospect.date_limite_candidature or prospect.date_debut or prospect.duree_contrat or prospect.formation_requise %}
+        <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;">
+            {% if prospect.date_limite_candidature %}
+            {% set today_str = now_date %}
+            <div style="padding:8px 12px;border-radius:6px;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);font-size:0.82rem;">
+                <span style="font-weight:700;color:var(--danger);">Date limite :</span> {{ prospect.date_limite_candidature }}
+            </div>
+            {% endif %}
+            {% if prospect.date_debut %}<div style="padding:8px 12px;border-radius:6px;background:rgba(30,64,175,0.06);border:1px solid rgba(30,64,175,0.15);font-size:0.82rem;"><span style="font-weight:700;color:var(--primary);">Début :</span> {{ prospect.date_debut }}</div>{% endif %}
+            {% if prospect.duree_contrat %}<div style="padding:8px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:0.82rem;"><span style="font-weight:700;">Durée :</span> {{ prospect.duree_contrat }}</div>{% endif %}
+            {% if prospect.formation_requise %}<div style="padding:8px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:0.82rem;"><span style="font-weight:700;">Formation :</span> {{ prospect.formation_requise }}</div>{% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Outils IA -->
+        {% if get_openai_key_set %}
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <label>Outils IA</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button onclick="iaAction('lm')" class="btn btn-outline btn-sm">Générer une lettre de motivation</button>
+                <button onclick="iaAction('questions')" class="btn btn-outline btn-sm">Questions d'entretien</button>
+                <button onclick="iaAction('score')" class="btn btn-outline btn-sm">Score de compatibilité</button>
+            </div>
+            <div id="ia-loading" style="display:none;margin-top:12px;color:var(--text-muted);font-size:0.85rem;">Analyse en cours…</div>
+            <div id="ia-result" style="display:none;margin-top:14px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:0.88rem;white-space:pre-wrap;line-height:1.7;max-height:420px;overflow-y:auto;"></div>
+        </div>
+        {% endif %}
+
+        <!-- Tags -->
+        <div style="margin-top:16px;">
+            <label>Tags</label>
+            <div id="tags-display" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px;">
+                {% for tag in prospect_tags %}
+                <span class="badge badge-blue" style="cursor:default;">{{ tag }}</span>
+                {% else %}
+                <span style="font-size:0.85rem;color:var(--text-muted);font-style:italic;">Aucun tag</span>
+                {% endfor %}
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="text" id="tag-input" placeholder="Ajouter des tags (virgule pour séparer)" style="flex:1;min-width:200px;" value="{{ prospect_tags | join(', ') }}" autocomplete="off" list="tag-suggestions">
+                <datalist id="tag-suggestions"></datalist>
+                <button type="button" class="btn btn-outline btn-sm" onclick="saveTags()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des contacts -->
+    <div class="card">
+        <h2>Historique des contacts ({{ interventions|length }})</h2>
+        {% for cr in interventions %}
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:6px;">
+                <strong style="color:var(--primary);font-size:0.9rem;">{{ cr.date_intervention }} — {{ cr.type_contact }}{% if cr.username %} <span style="font-weight:400;color:var(--text-muted);font-size:0.82rem;">({{ cr.username }})</span>{% endif %}</strong>
+                <div style="display:flex;gap:6px;">
+                    <a href="/intervention/{{ cr.id }}/editer" class="btn btn-outline btn-sm">Modifier</a>
+                    <form action="/intervention/{{ cr.id }}/supprimer" method="POST" style="margin:0;" onsubmit="return confirm('Supprimer ce contact ?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-danger btn-sm">×</button>
+                    </form>
+                </div>
+            </div>
+            {% if cr.compte_rendu %}<div style="white-space:pre-wrap;font-size:0.9rem;line-height:1.6;">{{ cr.compte_rendu }}</div>{% endif %}
+            <!-- Pièces jointes -->
+            {% set atts = attachments_map.get(cr.id, []) %}
+            {% if atts %}
+            <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+                {% for att in atts %}
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(30,64,175,0.07);border:1px solid rgba(30,64,175,0.2);border-radius:4px;font-size:0.82rem;">
+                    <a href="/attachment/{{ att.id }}" style="color:var(--primary);">📎 {{ att.original_name }}</a>
+                    <form action="/attachment/{{ att.id }}/supprimer" method="POST" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:0;font-size:0.85rem;" title="Supprimer">×</button>
+                    </form>
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div style="margin-top:8px;">
+                <form action="/intervention/{{ cr.id }}/attachment" method="POST" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:6px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="file" name="file" style="font-size:0.8rem;max-width:200px;" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt">
+                    <button type="submit" class="btn btn-outline btn-sm" style="font-size:0.78rem;">+ Joindre</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);font-size:0.9rem;font-style:italic;">Aucun contact enregistré.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Historique statuts -->
+    {% if historique_statut %}
+    <div class="card">
+        <h2>Historique des statuts</h2>
+        <table>
+            <thead><tr><th>Date</th><th>Ancien statut</th><th>Nouveau statut</th><th>Par</th></tr></thead>
+            <tbody>
+            {% for h in historique_statut %}
+            <tr>
+                <td style="color:var(--text-muted);font-size:0.85rem;">{{ h.horodatage[:16] }}</td>
+                <td><span class="badge badge-gray">{{ h.ancien_statut or '—' }}</span></td>
+                <td><span class="badge badge-blue">{{ h.nouveau_statut }}</span></td>
+                <td style="color:var(--text-muted);">{{ h.username or '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Documents CV / LM -->
+    <div class="card" id="documents">
+        <h2>Documents envoyés (CV & Lettre de motivation)</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            {% for doc_key, doc_label in [('cv','CV'), ('lm','Lettre de motivation')] %}
+            <div style="border:1px solid var(--border);border-radius:8px;padding:16px;">
+                <div style="font-weight:700;font-size:0.88rem;margin-bottom:12px;">{{ doc_label }}</div>
+                {% set doc = prospect_docs.get(doc_key) %}
+                {% if doc %}
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:rgba(22,163,74,0.07);border:1px solid rgba(22,163,74,0.2);border-radius:6px;">
+                    <span style="font-size:0.85rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ doc.original_name }}">📄 {{ doc.original_name }}</span>
+                    <a href="/prospect/{{ prospect.id }}/doc/{{ doc_key }}" class="btn btn-outline btn-sm">Télécharger</a>
+                    <form action="/prospect/{{ prospect.id }}/doc/{{ doc_key }}/supprimer" method="POST" style="margin:0;" onsubmit="return confirm('Supprimer ce document ?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-danger btn-sm">×</button>
+                    </form>
+                </div>
+                {% else %}
+                <div style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin-bottom:12px;">Aucun fichier importé.</div>
+                {% endif %}
+                <form action="/prospect/{{ prospect.id }}/upload-doc" method="POST" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="doc_type" value="{{ doc_key }}">
+                    <input type="file" name="file" accept=".pdf,.doc,.docx" style="font-size:0.8rem;flex:1;min-width:0;">
+                    <button type="submit" class="btn btn-outline btn-sm">{{ 'Remplacer' if doc else 'Importer' }}</button>
+                </form>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:5px;">Formats acceptés : PDF, DOC, DOCX</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Notes d'entretien -->
+    <div class="card" id="notes-entretien">
+        <h2>Notes d'entretien</h2>
+        <form action="/prospect/{{ prospect.id }}/notes-entretien" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <textarea name="notes_entretien" rows="5" placeholder="Questions posées, ressenti, retour recruteur, points discutés, salaire évoqué…" style="width:100%;box-sizing:border-box;resize:vertical;">{{ prospect.notes_entretien or '' }}</textarea>
+            <button type="submit" class="btn" style="margin-top:10px;">Enregistrer</button>
+        </form>
+    </div>
+
+    <!-- Nouveau contact -->
+    <div class="card">
+        <h2>Consigner un contact / une activité</h2>
+        <form action="/prospect/{{ prospect.id }}/intervention" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Date</label>
+                    <input type="date" name="date_intervention" required value="{{ '' }}">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Type de contact</label>
+                    <select name="type_contact">
+                        {% for tc in TYPES_CONTACT %}
+                        <option value="{{ tc }}">{{ tc }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Nouveau statut</label>
+                    <select name="nouveau_statut">
+                        <option value="{{ prospect.statut }}">Inchangé ({{ prospect.statut or '—' }})</option>
+                        {% for s in STATUTS %}
+                        {% if s != prospect.statut %}<option value="{{ s }}">{{ s }}</option>{% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Prochaine relance</label>
+                    <input type="date" name="nouvelle_relance" value="{{ prospect.date_relance or '' }}">
+                </div>
+            </div>
+            <div style="display:flex;gap:16px;margin-bottom:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);text-transform:none;font-size:0.88rem;margin:0;font-weight:400;letter-spacing:0;"><input type="checkbox" name="cv_envoye" {% if prospect.cv_envoye %}checked{% endif %}> CV envoyé</label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);text-transform:none;font-size:0.88rem;margin:0;font-weight:400;letter-spacing:0;"><input type="checkbox" name="lettre_envoyee" {% if prospect.lettre_envoyee %}checked{% endif %}> Lettre de motivation envoyée</label>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>Compte-rendu / Notes</label>
+                <textarea name="compte_rendu" rows="4" placeholder="Résumé de l'échange, retour du recruteur, prochaines étapes…"></textarea>
+            </div>
+            <button type="submit" class="btn" style="width:100%;">Enregistrer</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Initialisation date à aujourd'hui
+document.addEventListener('DOMContentLoaded', function() {
+    var d = document.querySelector('input[name="date_intervention"]');
+    if (d && !d.value) { d.value = new Date().toISOString().split('T')[0]; }
+});
+// IA
+function iaAction(type) {
+    var loading = document.getElementById('ia-loading');
+    var result = document.getElementById('ia-result');
+    if (!loading || !result) return;
+    loading.style.display = 'block';
+    result.style.display = 'none';
+    result.textContent = '';
+    var urls = { lm: '/api/generer-lm/{{ prospect.id }}', questions: '/api/questions-entretien/{{ prospect.id }}', score: '/api/score-compat/{{ prospect.id }}' };
+    fetch(urls[type], { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({csrf_token: '{{ csrf_token }}'}) })
+    .then(r => r.json())
+    .then(function(data) {
+        loading.style.display = 'none';
+        result.style.display = 'block';
+        if (data.error) { result.textContent = 'Erreur : ' + data.error; return; }
+        if (type === 'lm') {
+            result.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong>Lettre de motivation générée</strong><button onclick="copyIaResult()" class="btn btn-outline btn-sm">Copier</button></div><div id="ia-text" style="white-space:pre-wrap;">' + escHtml(data.lm) + '</div>';
+        } else if (type === 'questions') {
+            result.innerHTML = '<strong style="display:block;margin-bottom:10px;">Questions d\'entretien probables</strong><div style="white-space:pre-wrap;">' + escHtml(data.questions) + '</div>';
+        } else if (type === 'score') {
+            var s = data.score || 0;
+            var color = s >= 70 ? '#16a34a' : s >= 40 ? '#d97706' : '#dc2626';
+            var html = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">';
+            html += '<div style="font-size:2.5rem;font-weight:800;color:'+color+';">'+s+'<span style="font-size:1rem;">/100</span></div>';
+            html += '<div style="flex:1;background:var(--border);border-radius:8px;height:14px;overflow:hidden;"><div style="height:100%;width:'+s+'%;background:'+color+';border-radius:8px;"></div></div></div>';
+            if (data.points_forts && data.points_forts.length) { html += '<div style="margin-bottom:10px;"><strong style="color:var(--success);">Points forts :</strong><ul style="margin:6px 0 0 18px;padding:0;">'+data.points_forts.map(function(p){return '<li>'+escHtml(p)+'</li>';}).join('')+'</ul></div>'; }
+            if (data.points_faibles && data.points_faibles.length) { html += '<div style="margin-bottom:10px;"><strong style="color:var(--danger);">Points faibles :</strong><ul style="margin:6px 0 0 18px;padding:0;">'+data.points_faibles.map(function(p){return '<li>'+escHtml(p)+'</li>';}).join('')+'</ul></div>'; }
+            if (data.conseil) { html += '<div style="padding:10px 14px;background:rgba(30,64,175,0.05);border-left:3px solid var(--primary);border-radius:0 6px 6px 0;font-size:0.85rem;">'+escHtml(data.conseil)+'</div>'; }
+            result.innerHTML = html;
+        }
+    }).catch(function(e) { loading.style.display='none'; result.style.display='block'; result.textContent='Erreur réseau.'; });
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function copyIaResult() {
+    var el = document.getElementById('ia-text');
+    if (el) navigator.clipboard.writeText(el.textContent).then(function(){ showToast('Copié !','success'); });
+}
+// Tags
+fetch('/api/tags').then(r => r.json()).then(tags => {
+    var dl = document.getElementById('tag-suggestions');
+    if (dl) tags.forEach(function(t) { var o = document.createElement('option'); o.value = t; dl.appendChild(o); });
+});
+function saveTags() {
+    var tags = document.getElementById('tag-input').value.split(',').map(t => t.trim()).filter(Boolean);
+    fetch('/prospect/{{ prospect.id }}/tags', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({tags: tags, csrf_token: '{{ csrf_token }}'})
+    }).then(r => r.json()).then(function(data) {
+        if (data.ok) {
+            showToast('Tags enregistrés', 'success');
+            var d = document.getElementById('tags-display');
+            d.innerHTML = data.tags.length ? data.tags.map(t => '<span class="badge badge-blue" style="cursor:default;">'+t+'</span>').join('') : '<span style="font-size:0.85rem;color:var(--text-muted);font-style:italic;">Aucun tag</span>';
+        } else { showToast('Erreur', 'error'); }
+    });
+}
+</script>
+</body></html>

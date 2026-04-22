@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Pipeline - {{ company_name }}</title>
+<style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706; }
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+.page-header { max-width: 1600px; margin: 24px auto 16px; padding: 0 20px; display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
+.kanban-wrapper { max-width: 1600px; margin: 0 auto; padding: 0 20px 40px; overflow-x: auto; }
+.kanban-board { display: flex; gap: 14px; min-width: max-content; }
+.kanban-col { width: 220px; flex-shrink: 0; }
+.kanban-col-header { padding: 10px 12px; border-radius: 6px 6px 0 0; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+.kanban-col-body { background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; min-height: 200px; padding: 8px; }
+.kanban-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; cursor: grab; transition: box-shadow 0.15s, transform 0.15s; }
+.kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
+.kanban-card.dragging { opacity: 0.5; }
+.kanban-card-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; }
+.kanban-card-poste { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 5px; }
+.kanban-card-meta { font-size: 0.72rem; color: var(--text-muted); }
+.drop-target { background: rgba(30,64,175,0.05); border: 2px dashed var(--primary) !important; }
+/* Couleurs par statut */
+.col-0 .kanban-col-header { background: rgba(59,130,246,0.12); color: #2563eb; }
+.col-1 .kanban-col-header { background: rgba(245,158,11,0.12); color: #d97706; }
+.col-2 .kanban-col-header { background: rgba(139,92,246,0.12); color: #7c3aed; }
+.col-3 .kanban-col-header { background: rgba(139,92,246,0.15); color: #6d28d9; }
+.col-4 .kanban-col-header { background: rgba(20,184,166,0.12); color: #0f766e; }
+.col-5 .kanban-col-header { background: rgba(22,163,74,0.12); color: #15803d; }
+.col-6 .kanban-col-header { background: rgba(220,38,38,0.1); color: #dc2626; }
+.col-7 .kanban-col-header { background: rgba(100,116,139,0.12); color: #64748b; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head><body class="{% if theme == 'dark' %}dark-mode{% endif %}">
+{% include '_navbar.html' %}
+
+<div class="page-header">
+    <h1>Pipeline de candidatures</h1>
+    <span style="color:var(--text-muted);font-size:0.9rem;">{{ prospects|length }} candidature{{ 's' if prospects|length != 1 }}</span>
+</div>
+
+<div class="kanban-wrapper">
+    <div class="kanban-board" id="kanbanBoard">
+        {% for col in colonnes %}
+        {% set col_idx = loop.index0 %}
+        <div class="kanban-col col-{{ col_idx }}" data-statut="{{ col }}">
+            <div class="kanban-col-header">
+                <span>{{ col }}</span>
+                <span id="count-{{ col_idx }}">{{ prospects | selectattr('statut', 'equalto', col) | list | length }}</span>
+            </div>
+            <div class="kanban-col-body" id="col-{{ col_idx }}"
+                 ondragover="event.preventDefault(); this.classList.add('drop-target');"
+                 ondragleave="this.classList.remove('drop-target');"
+                 ondrop="handleDrop(event, '{{ col }}', {{ col_idx }})">
+                {% for p in prospects %}
+                {% if p.statut == col %}
+                <div class="kanban-card" draggable="true"
+                     data-id="{{ p.id }}"
+                     ondragstart="handleDragStart(event, {{ p.id }})">
+                    <div class="kanban-card-name"><a href="/prospect/{{ p.id }}">{{ p.etablissement }}</a></div>
+                    {% if p.poste %}<div class="kanban-card-poste">{{ p.poste }}</div>{% endif %}
+                    <div class="kanban-card-meta">
+                        {% if p.type_contrat %}{{ p.type_contrat }}{% endif %}
+                        {% if p.date_relance %} · 📅 {{ p.date_relance }}{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                <!-- Cartes sans statut dans col 0 -->
+                {% if col_idx == 0 %}
+                {% for p in prospects %}
+                {% if not p.statut %}
+                <div class="kanban-card" draggable="true"
+                     data-id="{{ p.id }}"
+                     ondragstart="handleDragStart(event, {{ p.id }})">
+                    <div class="kanban-card-name"><a href="/prospect/{{ p.id }}">{{ p.etablissement }}</a></div>
+                    {% if p.poste %}<div class="kanban-card-poste">{{ p.poste }}</div>{% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+var draggingId = null;
+var draggingCard = null;
+var csrfToken = '{{ csrf_token }}';
+
+function handleDragStart(e, id) {
+    draggingId = id;
+    draggingCard = e.target.closest('.kanban-card');
+    draggingCard.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDrop(e, statut, colIdx) {
+    e.preventDefault();
+    var col = document.getElementById('col-' + colIdx);
+    col.classList.remove('drop-target');
+    if (!draggingId) return;
+    fetch('/prospect/' + draggingId + '/statut', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: statut, csrf_token: csrfToken })
+    }).then(r => r.json()).then(function(data) {
+        if (data.ok && draggingCard) {
+            col.appendChild(draggingCard);
+            draggingCard.classList.remove('dragging');
+            updateCounts();
+        }
+    });
+    draggingId = null;
+    draggingCard = null;
+}
+
+document.addEventListener('dragend', function() {
+    document.querySelectorAll('.kanban-card.dragging').forEach(function(c) { c.classList.remove('dragging'); });
+    document.querySelectorAll('.drop-target').forEach(function(c) { c.classList.remove('drop-target'); });
+    draggingId = null;
+});
+
+function updateCounts() {
+    document.querySelectorAll('.kanban-col').forEach(function(col, i) {
+        var n = col.querySelectorAll('.kanban-card').length;
+        var cnt = document.getElementById('count-' + i);
+        if (cnt) cnt.textContent = n;
+    });
+}
+</script>
+</body></html>

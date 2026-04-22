@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="{{ company_name }}"><link rel="apple-touch-icon" href="/static/logo_custom.png"><title>Modifier Activité</title><style>
+:root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --text-muted: #64748b; --primary: #1e40af; --primary-hover: #1e3a8a; --accent: #d4af37; --border: #cbd5e1; --danger: #dc2626; --success: #16a34a; --warning: #d97706;}
+body.dark-mode { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #60a5fa; --border: #334155; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
+.container { max-width: 720px; margin: 32px auto; background: var(--card); padding: 32px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 20px 0 12px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+input[type=date], select, textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 12px; font-size: 0.9rem; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: 0.15s; text-decoration: none; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .container { margin: 8px; padding: 16px; } }
+</style></head>
+<body class="{% if theme == 'dark' %}dark-mode{% endif %}">{% include '_navbar.html' %}
+<div class="container">
+    <h1>Modifier l'activité</h1>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="section-title">Activité</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date_intervention" value="{{ intervention.date_intervention }}" required>
+            </div>
+            <div class="form-group">
+                <label>Type d'activité</label>
+                <select name="type_contact">
+                    {% for tc in TYPES_CONTACT %}
+                    <option {% if intervention.type_contact == tc %}selected{% endif %}>{{ tc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Compte rendu</label>
+            <textarea name="compte_rendu" rows="6" required>{{ intervention.compte_rendu }}</textarea>
+        </div>
+
+        <div class="section-title">Mise à jour de la candidature</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nouveau statut</label>
+                <select name="nouveau_statut">
+                    {% for s in STATUTS %}
+                    <option value="{{ s }}" {% if prospect.statut == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date de relance</label>
+                <input type="date" name="date_relance" value="{{ prospect.date_relance or '' }}">
+            </div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button type="submit" class="btn btn-primary">Mettre à jour</button>
+            <a href="/prospect/{{ prospect.id }}" class="btn btn-ghost">Annuler</a>
+        </div>
+    </form>
+</div>
+</body></html>
