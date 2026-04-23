@@ -1,0 +1,19 @@
+services:
+  opensuivi:
+    build: .
+    container_name: opensuivi
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    volumes:
+      - opensuivi_data:/data
+      - opensuivi_static:/app/static
+    environment:
+      - DATA_DIR=/data
+      - PYTHONUNBUFFERED=1
+      # - PORT=5050
+      # - FLASK_DEBUG=false
+
+volumes:
+  opensuivi_data:
+  opensuivi_static:
