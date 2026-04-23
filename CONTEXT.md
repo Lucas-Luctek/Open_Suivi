@@ -13,11 +13,17 @@ Multi-utilisateurs : chaque utilisateur a son propre suivi privé, l'admin gère
 - Reverse proxy : Nginx (gère le HTTPS)
 - Librairies : **APScheduler**, **WeasyPrint**, **openai**, **requests**, **beautifulsoup4**, **icalendar**, **openpyxl**
 
+## Dépôts
+- **GitHub (public)** : https://github.com/Lucas-Luctek/Open_Suivi
+- **GitLab (privé)** : https://gitlab.luctek.fr/Lucas-Luctek/open_suivi
+- Push simultané : `git push && git push gitlab`
+
 ## Fichiers principaux
 - `app.py` → logique principale Flask (~2400 lignes)
 - `backup.py` → système de sauvegarde automatique
 - `setup.sh` → script d'installation automatique
 - `install.sh` → bootstrap (clone + setup depuis une VM vierge)
+- `update.sh` → mise à jour (sauvegarde BDD → git pull → pip install → restart)
 - `requirements.txt` → dépendances Python
 - `templates/` → vues HTML (Jinja2)
 - `static/` → style.css, favicon.svg, sw.js (service worker PWA)
