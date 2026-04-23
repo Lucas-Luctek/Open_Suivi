@@ -1,0 +1,41 @@
+# Overlay de production : ajoute Nginx + HTTPS (Certbot)
+# Usage : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Avant le premier démarrage :
+#   1. Remplacer votre-domaine.fr dans nginx/opensuivi.conf
+#   2. Obtenir le certificat SSL :
+#      docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot \
+#        certonly --webroot --webroot-path /var/www/certbot \
+#        --email votre@email.fr --agree-tos --no-eff-email \
+#        -d votre-domaine.fr
+#   3. Relancer : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  opensuivi:
+    # En prod, le port de l'app n'est plus exposé directement
+    ports: !reset []
+
+  nginx:
+    image: nginx:alpine
+    container_name: opensuivi_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/opensuivi.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - opensuivi
+
+  certbot:
+    image: certbot/certbot
+    container_name: opensuivi_certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+
+volumes:
+  certbot_www:
+  certbot_certs:

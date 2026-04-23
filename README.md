@@ -123,7 +123,7 @@ docker compose up -d
 ```
 
 L'application est accessible sur : `http://IP_DU_SERVEUR:5050`  
-Login par défaut : **admin / admin** (à changer immédiatement dans le profil)
+Login par défaut : **admin / admin123** (à changer immédiatement dans le profil)
 
 ### Choisir le port
 
@@ -155,9 +155,29 @@ Rien n'est perdu lors d'un redémarrage ou d'une mise à jour.
 ### Mise à jour (Docker)
 
 ```bash
-git pull
-docker compose build --no-cache
-docker compose up -d
+sudo bash docker-update.sh
+```
+
+Le script sauvegarde automatiquement la base de données, récupère le code, reconstruit l'image et redémarre le service.
+
+### HTTPS avec Nginx (production / PWA)
+
+Pour activer HTTPS (requis pour installer l'app en PWA) :
+
+1. Éditer `nginx/opensuivi.conf` et remplacer `votre-domaine.fr` par votre domaine
+2. Obtenir le certificat SSL :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm certbot \
+  certonly --webroot --webroot-path /var/www/certbot \
+  --email votre@email.fr --agree-tos --no-eff-email \
+  -d votre-domaine.fr
+```
+
+3. Démarrer avec Nginx :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 ### Commandes Docker utiles
@@ -173,7 +193,7 @@ docker compose down
 docker compose restart
 
 # Sauvegarde manuelle de la BDD
-docker compose exec opensuivi python backup.py
+docker compose exec opensuivi python3 backup.py
 ```
 
 ---
