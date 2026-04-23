@@ -22,6 +22,9 @@ from icalendar import Calendar, Event, vText
 import uuid
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 _login_attempts = defaultdict(list)
 RATE_LIMIT_MAX = 5
@@ -35,7 +38,7 @@ if app.secret_key == 'changez-cette-cle-en-production-svp':
     print("⚠️  ATTENTION : SECRET_KEY par défaut utilisée. Changez-la en production !", flush=True)
 
 _DATA_DIR = os.environ.get('DATA_DIR', '')
-DB_NAME = os.path.join(_DATA_DIR, 'opensuivi.db') if _DATA_DIR else 'opensuivi.db'
+DB_NAME = os.path.join(_DATA_DIR, 'crm.db') if _DATA_DIR else 'crm.db'
 UPLOAD_FOLDER = os.path.join(_DATA_DIR, 'uploads') if _DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
 STATUTS = [
@@ -224,11 +227,14 @@ def init_db():
 
     # Colonnes multi-utilisateurs + nouvelles fonctionnalités
     for tbl, col, defval in [
-        ('users',          'approved',         'INTEGER DEFAULT 1'),
-        ('users',          'ical_token',        'TEXT DEFAULT NULL'),
-        ('prospects',      'user_id',           'INTEGER DEFAULT NULL'),
-        ('prospects',      'notes_entretien',   'TEXT DEFAULT NULL'),
-        ('evenements_perso','user_id',          'INTEGER DEFAULT NULL'),
+        ('users',          'approved',                 'INTEGER DEFAULT 1'),
+        ('users',          'ical_token',               'TEXT DEFAULT NULL'),
+        ('users',          'email',                    'TEXT DEFAULT ""'),
+        ('users',          'password_reset_token',     'TEXT DEFAULT NULL'),
+        ('users',          'password_reset_expires',   'TEXT DEFAULT NULL'),
+        ('prospects',      'user_id',                  'INTEGER DEFAULT NULL'),
+        ('prospects',      'notes_entretien',          'TEXT DEFAULT NULL'),
+        ('evenements_perso','user_id',                 'INTEGER DEFAULT NULL'),
     ]:
         try:
             c.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {defval}")
@@ -294,6 +300,109 @@ def set_user_setting(user_id, key, value):
     c.execute("INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?,?,?)", (user_id, key, value))
     conn.commit()
     conn.close()
+
+# ─────────────────────────────────────────────
+# EMAIL
+# ─────────────────────────────────────────────
+
+def send_email(to, subject, html_body, text_body=None):
+    """Envoie un email si SMTP activé. Retourne True en cas de succès."""
+    if get_setting('smtp_enabled', '0') != '1':
+        return False
+    host = get_setting('smtp_host', '').strip()
+    if not host:
+        return False
+    port = int(get_setting('smtp_port', '587') or '587')
+    user = get_setting('smtp_user', '').strip()
+    password = get_setting('smtp_password', '').strip()
+    from_addr = get_setting('smtp_from', '').strip() or user
+    from_name = get_setting('smtp_from_name', '').strip() or get_setting('company_name', 'OpenSuivi')
+    tls_mode = get_setting('smtp_tls', 'starttls')
+    if not from_addr or not to:
+        return False
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{from_name} <{from_addr}>"
+        msg['To'] = to
+        if text_body:
+            msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
+        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        if tls_mode == 'tls':
+            server = smtplib.SMTP_SSL(host, port, timeout=10)
+        else:
+            server = smtplib.SMTP(host, port, timeout=10)
+            if tls_mode == 'starttls':
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+        if user and password:
+            server.login(user, password)
+        server.sendmail(from_addr, [to], msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"[Email] Erreur envoi à {to}: {e}", flush=True)
+        return False
+
+def _email_base(title, content_html, app_name=None):
+    """Retourne un template HTML d'email générique."""
+    name = app_name or get_setting('company_name', 'OpenSuivi')
+    color = get_setting('color_primary', '') or '#1e40af'
+    return f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
+<table width="100%" style="max-width:560px;background:#ffffff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden;">
+<tr><td style="background:{color};padding:20px 28px;">
+  <h1 style="margin:0;color:#ffffff;font-size:1.1rem;font-weight:700;">{name}</h1>
+</td></tr>
+<tr><td style="padding:28px;">
+  <h2 style="margin:0 0 16px;color:#0f172a;font-size:1.1rem;">{title}</h2>
+  {content_html}
+  <p style="margin:28px 0 0;font-size:0.78rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px;">
+    Cet email a été envoyé automatiquement par {name}. Ne pas répondre à cet email.
+  </p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>"""
+
+def notify_admin_new_user(username):
+    """Notifie l'admin qu'un nouvel utilisateur attend validation."""
+    admin_email = get_setting('smtp_admin_email', '').strip()
+    if not admin_email:
+        return
+    app_name = get_setting('company_name', 'OpenSuivi')
+    content = f"""<p style="color:#374151;line-height:1.6;">Un nouvel utilisateur vient de s'inscrire et attend votre validation.</p>
+<table style="width:100%;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;margin:16px 0;">
+<tr style="background:#f8fafc;"><td style="padding:10px 14px;font-size:0.82rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nom d'utilisateur</td></tr>
+<tr><td style="padding:12px 14px;font-size:1rem;font-weight:700;color:#0f172a;">{username}</td></tr>
+</table>
+<p style="color:#374151;">Connectez-vous à l'interface d'administration pour approuver ou refuser ce compte.</p>"""
+    send_email(admin_email, f"[{app_name}] Nouvelle demande de compte — {username}",
+               _email_base(f"Nouvelle demande de compte", content))
+
+def notify_user_approved(user_email, username):
+    """Notifie l'utilisateur que son compte a été approuvé."""
+    if not user_email:
+        return
+    app_name = get_setting('company_name', 'OpenSuivi')
+    content = f"""<p style="color:#374151;line-height:1.6;">Bonjour <strong>{username}</strong>,</p>
+<p style="color:#374151;line-height:1.6;">Votre compte sur <strong>{app_name}</strong> a été approuvé. Vous pouvez maintenant vous connecter et commencer votre suivi de recherche d'emploi.</p>
+<p style="margin:20px 0;"><a href="#" style="background:#1e40af;color:#ffffff;padding:11px 22px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9rem;">Se connecter</a></p>"""
+    send_email(user_email, f"[{app_name}] Votre compte a été approuvé",
+               _email_base("Compte approuvé ✓", content))
+
+def notify_user_refused(user_email, username):
+    """Notifie l'utilisateur que sa demande a été refusée."""
+    if not user_email:
+        return
+    app_name = get_setting('company_name', 'OpenSuivi')
+    content = f"""<p style="color:#374151;line-height:1.6;">Bonjour <strong>{username}</strong>,</p>
+<p style="color:#374151;line-height:1.6;">Nous sommes désolés de vous informer que votre demande de compte sur <strong>{app_name}</strong> n'a pas été approuvée.</p>
+<p style="color:#374151;line-height:1.6;">Pour toute question, contactez l'administrateur.</p>"""
+    send_email(user_email, f"[{app_name}] Votre demande de compte n'a pas été approuvée",
+               _email_base("Demande de compte refusée", content))
 
 def _check_prospect_owner(c, prospect_id, user_id):
     c.execute("SELECT id FROM prospects WHERE id=? AND user_id=?", (prospect_id, user_id))
@@ -449,6 +558,7 @@ def inscription():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         confirm  = request.form.get('confirm_password', '')
+        user_email = request.form.get('email', '').strip().lower()
         if not username or not password:
             error = "Nom d'utilisateur et mot de passe obligatoires."
         elif len(username) < 3:
@@ -466,12 +576,79 @@ def inscription():
                 conn.close()
             else:
                 hashed_pw = generate_password_hash(password)
-                c.execute("INSERT INTO users (username, password, role, approved) VALUES (?,?,?,0)",
-                          (username, hashed_pw, 'commercial'))
+                c.execute("INSERT INTO users (username, password, role, approved, email) VALUES (?,?,?,0,?)",
+                          (username, hashed_pw, 'commercial', user_email))
                 conn.commit()
                 conn.close()
+                notify_admin_new_user(username)
                 success = True
     return render_template('inscription.html', error=error, success=success)
+
+@app.route('/mot-de-passe-oublie', methods=['GET', 'POST'])
+def mot_de_passe_oublie():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    if get_setting('smtp_enabled', '0') != '1':
+        return render_template('mot_de_passe_oublie.html', smtp_off=True)
+    sent = False
+    error = None
+    if request.method == 'POST':
+        email_input = request.form.get('email', '').strip().lower()
+        if not email_input:
+            error = "Veuillez saisir votre adresse email."
+        else:
+            conn = sqlite3.connect(DB_NAME)
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            c.execute("SELECT id, username FROM users WHERE lower(email)=? AND approved=1", (email_input,))
+            u = c.fetchone()
+            if u:
+                token = secrets.token_hex(32)
+                expires = (datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
+                c.execute("UPDATE users SET password_reset_token=?, password_reset_expires=? WHERE id=?",
+                          (token, expires, u['id']))
+                conn.commit()
+                app_name = get_setting('company_name', 'OpenSuivi')
+                reset_url = url_for('reset_mdp', token=token, _external=True)
+                content = f"""<p style="color:#374151;line-height:1.6;">Bonjour <strong>{u['username']}</strong>,</p>
+<p style="color:#374151;line-height:1.6;">Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.</p>
+<p style="margin:20px 0;"><a href="{reset_url}" style="background:#1e40af;color:#ffffff;padding:11px 22px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9rem;">Réinitialiser mon mot de passe</a></p>
+<p style="color:#64748b;font-size:0.85rem;">Ce lien est valable <strong>1 heure</strong>. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+<p style="color:#94a3b8;font-size:0.78rem;margin-top:12px;">Lien direct : {reset_url}</p>"""
+                send_email(email_input, f"[{app_name}] Réinitialisation de votre mot de passe",
+                           _email_base("Réinitialisation du mot de passe", content))
+            conn.close()
+            sent = True  # Toujours afficher "envoyé" pour éviter l'énumération d'emails
+    return render_template('mot_de_passe_oublie.html', sent=sent, error=error, smtp_off=False)
+
+@app.route('/reset-mdp/<token>', methods=['GET', 'POST'])
+def reset_mdp(token):
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    error = None
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT id, username FROM users WHERE password_reset_token=? AND password_reset_expires > datetime('now')", (token,))
+    u = c.fetchone()
+    if not u:
+        conn.close()
+        return render_template('reset_mdp.html', invalid=True)
+    if request.method == 'POST':
+        nouveau = request.form.get('nouveau_mdp', '')
+        confirm = request.form.get('confirm_mdp', '')
+        if not nouveau or len(nouveau) < 6:
+            error = "Le mot de passe doit faire au moins 6 caractères."
+        elif nouveau != confirm:
+            error = "Les mots de passe ne correspondent pas."
+        else:
+            c.execute("UPDATE users SET password=?, password_reset_token=NULL, password_reset_expires=NULL WHERE id=?",
+                      (generate_password_hash(nouveau), u['id']))
+            conn.commit()
+            conn.close()
+            return render_template('reset_mdp.html', success=True)
+    conn.close()
+    return render_template('reset_mdp.html', token=token, username=u['username'], error=error, invalid=False, success=False)
 
 @app.route('/logout')
 def logout():
@@ -1207,7 +1384,7 @@ def ical_feed(token):
         abort(404)
     uid = user['id']
     company_row = c.execute("SELECT value FROM settings WHERE key='company_name'").fetchone()
-    company_name = company_row['value'] if company_row else 'OpenSuivi'
+    company_name = company_row['value'] if company_row else 'Postulo'
 
     cal = Calendar()
     cal.add('prodid', f'-//{company_name}//Suivi Emploi//FR')
@@ -1228,7 +1405,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'event-{e["id"]}@opensuivi'))
+        ev.add('uid', vText(f'event-{e["id"]}@postulo'))
         ev.add('summary', vText(f'{e["type_event"]} : {e["titre"]}'))
         ev.add('dtstart', dt)
         ev.add('dtend', dt)
@@ -1247,7 +1424,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'relance-{r["id"]}@opensuivi'))
+        ev.add('uid', vText(f'relance-{r["id"]}@postulo'))
         label = f'{r["etablissement"]}'
         if r['poste']:
             label += f' — {r["poste"]}'
@@ -1268,7 +1445,7 @@ def ical_feed(token):
         except (ValueError, TypeError):
             continue
         ev = Event()
-        ev.add('uid', vText(f'limite-{l["id"]}@opensuivi'))
+        ev.add('uid', vText(f'limite-{l["id"]}@postulo'))
         label = f'{l["etablissement"]}'
         if l['poste']:
             label += f' — {l["poste"]}'
@@ -1281,7 +1458,7 @@ def ical_feed(token):
     return Response(
         cal.to_ical(),
         mimetype='text/calendar',
-        headers={'Content-Disposition': 'inline; filename="opensuivi.ics"'}
+        headers={'Content-Disposition': 'inline; filename="postulo.ics"'}
     )
 
 # ─────────────────────────────────────────────
@@ -2126,6 +2303,7 @@ def profil_recherche():
 def profil():
     error = None
     success = None
+    uid = session['user_id']
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -2133,9 +2311,16 @@ def profil():
         action = request.form.get('action', 'mdp')
         if action == 'signature':
             signature = request.form.get('signature', '')
-            c.execute("UPDATE users SET signature = ? WHERE id = ?", (signature, session['user_id']))
+            c.execute("UPDATE users SET signature = ? WHERE id = ?", (signature, uid))
             conn.commit()
             success = "Signature enregistrée."
+        elif action == 'email_notifs':
+            new_email = request.form.get('email', '').strip().lower()
+            c.execute("UPDATE users SET email = ? WHERE id = ?", (new_email, uid))
+            conn.commit()
+            set_user_setting(uid, 'notif_relances', '1' if request.form.get('notif_relances') else '0')
+            set_user_setting(uid, 'notif_deadline', '1' if request.form.get('notif_deadline') else '0')
+            success = "Préférences de notifications enregistrées."
         else:
             ancien_mdp = request.form.get('ancien_mdp', '')
             nouveau_mdp = request.form.get('nouveau_mdp', '')
@@ -2147,20 +2332,27 @@ def profil():
             elif len(nouveau_mdp) < 6:
                 error = "Le nouveau mot de passe doit contenir au moins 6 caractères."
             else:
-                c.execute("SELECT * FROM users WHERE id = ?", (session['user_id'],))
+                c.execute("SELECT * FROM users WHERE id = ?", (uid,))
                 user = c.fetchone()
                 if user and check_password_hash(user['password'], ancien_mdp):
                     hashed_pw = generate_password_hash(nouveau_mdp)
-                    c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_pw, session['user_id']))
+                    c.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_pw, uid))
                     conn.commit()
                     success = "Mot de passe modifié avec succès."
                 else:
                     error = "Ancien mot de passe incorrect."
-    c.execute("SELECT signature FROM users WHERE id = ?", (session['user_id'],))
+    c.execute("SELECT signature, email FROM users WHERE id = ?", (uid,))
     row = c.fetchone()
     signature = row['signature'] if row else ''
+    user_email = row['email'] if row else ''
     conn.close()
-    return render_template('profil.html', error=error, success=success, current_signature=signature)
+    notif_relances = get_user_setting(uid, 'notif_relances', '0') == '1'
+    notif_deadline = get_user_setting(uid, 'notif_deadline', '0') == '1'
+    smtp_active = get_setting('smtp_enabled', '0') == '1'
+    return render_template('profil.html', error=error, success=success,
+                           current_signature=signature, user_email=user_email,
+                           notif_relances=notif_relances, notif_deadline=notif_deadline,
+                           smtp_active=smtp_active)
 
 # ─────────────────────────────────────────────
 # ADMINISTRATION
@@ -2194,12 +2386,24 @@ def admin():
     favicon_url = f'/static/{favicon_filename}' if favicon_filename else ''
     raw_key = get_openai_key()
     openai_key_hint = f"{raw_key[:8]}...{raw_key[-4:]}" if len(raw_key) > 12 else ('(configurée)' if raw_key else '')
+    smtp_config = {
+        'enabled':      get_setting('smtp_enabled', '0') == '1',
+        'host':         get_setting('smtp_host', ''),
+        'port':         get_setting('smtp_port', '587'),
+        'user':         get_setting('smtp_user', ''),
+        'from_addr':    get_setting('smtp_from', ''),
+        'from_name':    get_setting('smtp_from_name', ''),
+        'tls':          get_setting('smtp_tls', 'starttls'),
+        'admin_email':  get_setting('smtp_admin_email', ''),
+        'password_set': bool(get_setting('smtp_password', '')),
+    }
     return render_template('admin.html', users=get_admin_users(),
                            tab=tab, success=success, error=error,
                            company_info=company_info,
                            favicon_url=favicon_url,
                            openai_key_hint=openai_key_hint,
-                           openai_key_set=bool(raw_key))
+                           openai_key_set=bool(raw_key),
+                           smtp_config=smtp_config)
 
 @app.route('/admin/settings', methods=['POST'])
 @login_required
@@ -2245,6 +2449,49 @@ def admin_colors_reset():
     conn.commit()
     conn.close()
     return redirect(url_for('admin') + '?tab=perso&success=Couleurs+réinitialisées')
+
+@app.route('/admin/smtp', methods=['POST'])
+@login_required
+@admin_required
+def admin_smtp():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    smtp_enabled = '1' if request.form.get('smtp_enabled') == '1' else '0'
+    fields = {
+        'smtp_enabled': smtp_enabled,
+        'smtp_host':        request.form.get('smtp_host', '').strip(),
+        'smtp_port':        request.form.get('smtp_port', '587').strip() or '587',
+        'smtp_user':        request.form.get('smtp_user', '').strip(),
+        'smtp_from':        request.form.get('smtp_from', '').strip(),
+        'smtp_from_name':   request.form.get('smtp_from_name', '').strip(),
+        'smtp_tls':         request.form.get('smtp_tls', 'starttls'),
+        'smtp_admin_email': request.form.get('smtp_admin_email', '').strip(),
+    }
+    # Ne remplace le mot de passe que si une valeur est fournie
+    smtp_password = request.form.get('smtp_password', '').strip()
+    if smtp_password:
+        fields['smtp_password'] = smtp_password
+    for key, val in fields.items():
+        c.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)", (key, val))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('admin') + '?tab=email&success=Configuration+email+enregistrée')
+
+@app.route('/admin/smtp/test', methods=['POST'])
+@login_required
+@admin_required
+def admin_smtp_test():
+    test_to = request.form.get('test_to', '').strip()
+    if not test_to:
+        return redirect(url_for('admin') + '?tab=email&error=Adresse+de+test+manquante')
+    app_name = get_setting('company_name', 'OpenSuivi')
+    content = f"""<p style="color:#374151;line-height:1.6;">Ceci est un email de test envoyé depuis <strong>{app_name}</strong>.</p>
+<p style="color:#374151;">La configuration SMTP fonctionne correctement !</p>"""
+    ok = send_email(test_to, f"[{app_name}] Test de configuration email",
+                    _email_base("Test email — Configuration OK", content))
+    if ok:
+        return redirect(url_for('admin') + '?tab=email&success=Email+de+test+envoyé+avec+succès')
+    return redirect(url_for('admin') + '?tab=email&error=Échec+envoi+email+—+vérifiez+la+configuration+SMTP')
 
 @app.route('/admin/upload-logo', methods=['POST'])
 @login_required
@@ -2295,10 +2542,15 @@ def admin_ajouter_utilisateur():
 @admin_required
 def admin_approuver_utilisateur(id):
     conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
+    c.execute("SELECT username, email FROM users WHERE id=?", (id,))
+    u = c.fetchone()
     c.execute("UPDATE users SET approved=1 WHERE id=?", (id,))
     conn.commit()
     conn.close()
+    if u:
+        notify_user_approved(u['email'], u['username'])
     return redirect(url_for('admin') + '?tab=users&success=Compte+approuvé')
 
 @app.route('/admin/refuser/<int:id>', methods=['POST'])
@@ -2308,7 +2560,12 @@ def admin_refuser_utilisateur(id):
     if id == session.get('user_id'):
         return redirect(url_for('admin') + '?tab=users&error=Impossible+de+refuser+votre+propre+compte')
     conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
+    c.execute("SELECT username, email FROM users WHERE id=? AND approved=0", (id,))
+    u = c.fetchone()
+    if u:
+        notify_user_refused(u['email'], u['username'])
     c.execute("DELETE FROM users WHERE id=? AND approved=0", (id,))
     conn.commit()
     conn.close()
@@ -2461,7 +2718,7 @@ def favicon():
 
 @app.route('/manifest.json')
 def pwa_manifest():
-    name = get_setting('company_name', 'OpenSuivi')
+    name = get_setting('company_name', 'Postulo')
     color_primary = get_setting('color_primary', '') or '#0f172a'
     logo_filename = get_setting('logo_filename', '')
     icon_url = f'/static/{logo_filename}' if logo_filename else '/static/favicon.svg'
@@ -2539,10 +2796,83 @@ def _auto_archive():
     except Exception as e:
         print(f"[Scheduler] Erreur archivage auto: {e}", flush=True)
 
+def _send_daily_alerts():
+    """Envoie les alertes email quotidiennes aux utilisateurs qui les ont activées."""
+    if get_setting('smtp_enabled', '0') != '1':
+        return
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        in_3_days = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+        app_name = get_setting('company_name', 'OpenSuivi')
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute("SELECT id, username, email FROM users WHERE approved=1 AND email != ''")
+        users = c.fetchall()
+        for u in users:
+            uid = u['id']
+            user_email = u['email']
+            username = u['username']
+            notif_relances = c.execute(
+                "SELECT value FROM user_settings WHERE user_id=? AND key='notif_relances'", (uid,)
+            ).fetchone()
+            notif_deadline = c.execute(
+                "SELECT value FROM user_settings WHERE user_id=? AND key='notif_deadline'", (uid,)
+            ).fetchone()
+
+            # Relances du jour
+            if notif_relances and notif_relances['value'] == '1':
+                c.execute("""SELECT etablissement, poste, statut FROM prospects
+                    WHERE user_id=? AND date_relance=? AND (archived=0 OR archived IS NULL)
+                    AND statut NOT IN ('Refus','Désistement','Offre reçue')""", (uid, today))
+                relances = c.fetchall()
+                if relances:
+                    rows = ''.join(
+                        f"<tr><td style='padding:10px 14px;border-bottom:1px solid #e2e8f0;'><strong>{r['etablissement']}</strong>"
+                        f"{'<br><span style=\"font-size:0.85rem;color:#64748b;\">'+r['poste']+'</span>' if r['poste'] else ''}</td>"
+                        f"<td style='padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:0.85rem;color:#64748b;'>{r['statut'] or ''}</td></tr>"
+                        for r in relances
+                    )
+                    content = f"""<p style="color:#374151;line-height:1.6;">Bonjour <strong>{username}</strong>, voici vos relances prévues aujourd'hui.</p>
+<table style="width:100%;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;margin:16px 0;border-collapse:collapse;">
+<tr style="background:#f8fafc;"><th style="padding:10px 14px;text-align:left;font-size:0.78rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Entreprise</th>
+<th style="padding:10px 14px;text-align:left;font-size:0.78rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Statut</th></tr>
+{rows}
+</table>"""
+                    send_email(user_email, f"[{app_name}] {len(relances)} relance(s) prévue(s) aujourd'hui",
+                               _email_base(f"{len(relances)} relance(s) à faire aujourd'hui", content))
+
+            # Dates limites imminentes (≤ 3 jours)
+            if notif_deadline and notif_deadline['value'] == '1':
+                c.execute("""SELECT etablissement, poste, date_limite_candidature FROM prospects
+                    WHERE user_id=? AND date_limite_candidature BETWEEN ? AND ?
+                    AND (archived=0 OR archived IS NULL)
+                    AND statut NOT IN ('Refus','Désistement','Offre reçue')""", (uid, today, in_3_days))
+                deadlines = c.fetchall()
+                if deadlines:
+                    rows = ''.join(
+                        f"<tr><td style='padding:10px 14px;border-bottom:1px solid #e2e8f0;'><strong>{r['etablissement']}</strong>"
+                        f"{'<br><span style=\"font-size:0.85rem;color:#64748b;\">'+r['poste']+'</span>' if r['poste'] else ''}</td>"
+                        f"<td style='padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:0.85rem;color:#dc2626;font-weight:600;'>{r['date_limite_candidature']}</td></tr>"
+                        for r in deadlines
+                    )
+                    content = f"""<p style="color:#374151;line-height:1.6;">Bonjour <strong>{username}</strong>, ces offres arrivent bientôt à échéance.</p>
+<table style="width:100%;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;margin:16px 0;border-collapse:collapse;">
+<tr style="background:#f8fafc;"><th style="padding:10px 14px;text-align:left;font-size:0.78rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Entreprise</th>
+<th style="padding:10px 14px;text-align:left;font-size:0.78rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Date limite</th></tr>
+{rows}
+</table>"""
+                    send_email(user_email, f"[{app_name}] {len(deadlines)} date(s) limite(s) dans moins de 3 jours",
+                               _email_base(f"{len(deadlines)} candidature(s) — délai imminent", content))
+        conn.close()
+    except Exception as e:
+        print(f"[Scheduler] Erreur alertes email: {e}", flush=True)
+
 def _start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(_auto_backup,   'cron', hour=2, minute=0,  id='backup_auto')
-    scheduler.add_job(_auto_archive,  'cron', hour=3, minute=0,  id='archive_auto')
+    scheduler.add_job(_auto_backup,       'cron', hour=2, minute=0,  id='backup_auto')
+    scheduler.add_job(_auto_archive,      'cron', hour=3, minute=0,  id='archive_auto')
+    scheduler.add_job(_send_daily_alerts, 'cron', hour=8, minute=0,  id='alertes_email')
     scheduler.start()
     return scheduler
 

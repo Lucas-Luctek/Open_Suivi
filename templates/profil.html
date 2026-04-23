@@ -36,6 +36,37 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30,64,175
         </form>
     </div>
 
+    <!-- Email & Notifications -->
+    <div class="card">
+        <h2>Email & Notifications</h2>
+        {% if not smtp_active %}
+        <div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.3);border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:0.88rem;color:#92400e;">
+            Les emails ne sont pas activés sur cette instance. Contactez l'administrateur pour les activer.
+        </div>
+        {% endif %}
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="email_notifs">
+            <div class="form-group">
+                <label>Votre adresse email</label>
+                <input type="email" name="email" value="{{ user_email }}" placeholder="votre@email.fr" {% if not smtp_active %}disabled{% endif %}>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin:4px 0 0;">Utilisée pour la réinitialisation de mot de passe et les alertes. Non visible par les autres utilisateurs.</p>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="margin-bottom:10px;">Alertes quotidiennes (envoyées à 8h)</label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.9rem;font-weight:400;color:var(--text);text-transform:none;letter-spacing:0;margin-bottom:8px;{% if not smtp_active %}opacity:0.5;{% endif %}">
+                    <input type="checkbox" name="notif_relances" value="1" {% if notif_relances %}checked{% endif %} {% if not smtp_active %}disabled{% endif %} style="width:16px;height:16px;margin:0;">
+                    Récapitulatif des relances du jour
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.9rem;font-weight:400;color:var(--text);text-transform:none;letter-spacing:0;{% if not smtp_active %}opacity:0.5;{% endif %}">
+                    <input type="checkbox" name="notif_deadline" value="1" {% if notif_deadline %}checked{% endif %} {% if not smtp_active %}disabled{% endif %} style="width:16px;height:16px;margin:0;">
+                    Dates limites de candidature imminentes (≤ 3 jours)
+                </label>
+            </div>
+            <button type="submit" class="btn" {% if not smtp_active %}disabled{% endif %}>Enregistrer</button>
+        </form>
+    </div>
+
     <div style="text-align:center; padding:8px 0;">
         <a href="/profil-recherche" class="btn" style="background:transparent; color:var(--primary); border:1px solid var(--primary);">Mon profil de recherche →</a>
     </div>
