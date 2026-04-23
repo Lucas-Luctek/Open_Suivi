@@ -1761,7 +1761,47 @@ _CONTENT_SELECTORS = [
     'article', 'main',
 ]
 
+def _scrape_workday(url):
+    """Workday est une SPA : on appelle directement leur API JSON interne."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    hostname = parsed.hostname  # ex: ratp.wd3.myworkdayjobs.com
+    tenant = hostname.split('.')[0]  # ex: ratp
+
+    # Chemin : /fr-FR/RATP_Externe/job/... → supprimer le préfixe locale
+    path_parts = parsed.path.lstrip('/').split('/')
+    # Le premier segment est la locale (ex: fr-FR) si court et contient '-'
+    if path_parts and '-' in path_parts[0] and len(path_parts[0]) <= 6:
+        path_parts = path_parts[1:]
+
+    api_path = '/wday/cxs/' + tenant + '/' + '/'.join(path_parts)
+    api_url = f"https://{hostname}{api_path}"
+
+    resp = http_requests.get(api_url, headers={
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+    }, timeout=12)
+    resp.raise_for_status()
+    info = resp.json().get('jobPostingInfo', {})
+
+    desc_html = info.get('jobDescription', '')
+    desc_text = BeautifulSoup(desc_html, 'html.parser').get_text(separator='\n', strip=True)
+
+    parts = []
+    if info.get('title'):       parts.append(f"Poste : {info['title']}")
+    if info.get('location'):    parts.append(f"Lieu : {info['location']}")
+    if info.get('startDate'):   parts.append(f"Date de début : {info['startDate']}")
+    if info.get('jobReqId'):    parts.append(f"Référence : {info['jobReqId']}")
+    if info.get('remoteType'):  parts.append(f"Télétravail : {info['remoteType']}")
+    if desc_text:               parts.append(f"\nDescription :\n{desc_text}")
+
+    return '\n'.join(parts)
+
+
 def _scrape_url(url):
+    if 'myworkdayjobs.com' in url:
+        return _scrape_workday(url)
+
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'fr-FR,fr;q=0.9',
