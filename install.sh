@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # OpenSuivi — Script de bootstrap (installation depuis zéro)
-# Usage : bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/opensuivi/main/install.sh)
+# Usage : bash <(curl -fsSL https://raw.githubusercontent.com/Lucas-Luctek/Open_Suivi/main/install.sh)
 # ============================================================
 
 set -e
@@ -26,7 +26,7 @@ if [ -d "$INSTALL_DIR" ]; then
     echo "  Le dossier $INSTALL_DIR existe déjà, mise à jour..."
     git -C "$INSTALL_DIR" pull --ff-only
 else
-    git clone https://github.com/VOTRE_USERNAME/opensuivi.git "$INSTALL_DIR"
+    git clone https://github.com/Lucas-Luctek/Open_Suivi.git "$INSTALL_DIR"
 fi
 echo "  ✓ Dépôt prêt dans $INSTALL_DIR"
 echo ""

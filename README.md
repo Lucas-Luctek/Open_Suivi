@@ -76,7 +76,7 @@ Multi-utilisateurs, assisté par IA (GPT-4o-mini), installable comme une vraie a
 ### Installation en une commande
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/VOTRE_USERNAME/opensuivi/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Lucas-Luctek/Open_Suivi/main/install.sh)
 ```
 
 Le script :
@@ -93,7 +93,7 @@ Vous serez invité à choisir un **mot de passe admin** et un **port** (5050 par
 ### Installation manuelle
 
 ```bash
-git clone https://github.com/VOTRE_USERNAME/opensuivi.git
+git clone https://github.com/Lucas-Luctek/Open_Suivi.git
 cd opensuivi
 chmod +x setup.sh && sudo ./setup.sh
 ```
