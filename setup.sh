@@ -129,6 +129,9 @@ EnvironmentFile=${INSTALL_DIR}/.env
 ExecStart=${INSTALL_DIR}/venv/bin/python3 ${INSTALL_DIR}/app.py
 Restart=always
 RestartSec=5
+SyslogIdentifier=opensuivi
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -138,6 +141,18 @@ systemctl daemon-reload
 systemctl enable opensuivi --quiet
 systemctl restart opensuivi
 echo "  ✓ Service OpenSuivi démarré et activé au démarrage."
+
+# ── 10. Rotation des logs journald ─────────────────────────
+echo "─── Rotation des logs ───"
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/opensuivi.conf <<'JEOF'
+[Journal]
+SystemMaxUse=200M
+SystemMaxFileSize=50M
+MaxFileSec=2month
+JEOF
+systemctl restart systemd-journald 2>/dev/null || true
+echo "  ✓ Journaux limités à 200 Mo, rotation toutes les 2 mois."
 echo ""
 
 echo "╔══════════════════════════════════════════════════╗"

@@ -2493,20 +2493,56 @@ def offline_page():
     return render_template('offline.html')
 
 # ─────────────────────────────────────────────
-# SCHEDULER (backup auto)
+# SCHEDULER (backup auto + archivage auto)
 # ─────────────────────────────────────────────
 
 def _auto_backup():
     try:
         backup_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backup.py')
         subprocess.run(['python3', backup_script], timeout=60, check=True)
-        print(f"[Scheduler] Backup automatique effectué à {datetime.now()}")
+        print(f"[Scheduler] Backup automatique effectué à {datetime.now()}", flush=True)
     except Exception as e:
-        print(f"[Scheduler] Erreur backup auto: {e}")
+        print(f"[Scheduler] Erreur backup auto: {e}", flush=True)
+
+def _backup_on_startup():
+    """Lance un backup si aucun n'a été effectué dans les dernières 24h."""
+    backup_dir = os.path.join(_DATA_DIR, 'backups') if _DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+    try:
+        if os.path.isdir(backup_dir):
+            recent = [f for f in os.listdir(backup_dir) if f.endswith('.db')]
+            if recent:
+                last_mtime = max(os.path.getmtime(os.path.join(backup_dir, f)) for f in recent)
+                if (time.time() - last_mtime) < 86400:
+                    return  # Backup récent, rien à faire
+        print("[Startup] Aucun backup récent détecté, lancement d'un backup...", flush=True)
+        _auto_backup()
+    except Exception as e:
+        print(f"[Startup] Erreur vérification backup: {e}", flush=True)
+
+def _auto_archive():
+    """Archive les candidatures en Refus/Désistement après N jours sans activité."""
+    days = int(os.environ.get('AUTO_ARCHIVE_DAYS', 30))
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute("""
+            UPDATE prospects SET archived = 1
+            WHERE statut IN ('Refus', 'Désistement')
+            AND (archived = 0 OR archived IS NULL)
+            AND date_ajout <= date('now', ?)
+        """, (f'-{days} days',))
+        n = c.rowcount
+        conn.commit()
+        conn.close()
+        if n > 0:
+            print(f"[Scheduler] {n} candidature(s) archivées automatiquement (>{days}j en Refus/Désistement)", flush=True)
+    except Exception as e:
+        print(f"[Scheduler] Erreur archivage auto: {e}", flush=True)
 
 def _start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(_auto_backup, 'cron', hour=2, minute=0, id='backup_auto')
+    scheduler.add_job(_auto_backup,   'cron', hour=2, minute=0,  id='backup_auto')
+    scheduler.add_job(_auto_archive,  'cron', hour=3, minute=0,  id='archive_auto')
     scheduler.start()
     return scheduler
 
@@ -2515,6 +2551,7 @@ def _start_scheduler():
 # ─────────────────────────────────────────────
 
 init_db()
+_backup_on_startup()
 _start_scheduler()
 
 if __name__ == '__main__':
