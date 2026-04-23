@@ -107,6 +107,77 @@ Login : admin / (mot de passe choisi)
 
 ---
 
+## Installation avec Docker
+
+### Pré-requis
+
+- [Docker](https://docs.docker.com/engine/install/) 24+
+- [Docker Compose](https://docs.docker.com/compose/install/) v2+
+
+### Démarrage rapide
+
+```bash
+git clone https://github.com/Lucas-Luctek/Open_Suivi.git
+cd Open_Suivi
+docker compose up -d
+```
+
+L'application est accessible sur : `http://IP_DU_SERVEUR:5050`  
+Login par défaut : **admin / admin** (à changer immédiatement dans le profil)
+
+### Choisir le port
+
+**Via fichier `.env`** (recommandé) :
+
+```bash
+cp .env.example .env
+# Éditer .env et changer PORT=8080
+docker compose up -d
+```
+
+**À la volée** :
+
+```bash
+PORT=8080 docker compose up -d
+```
+
+### Données persistantes
+
+Les données sont stockées dans des volumes Docker gérés automatiquement :
+
+| Volume | Contenu |
+|---|---|
+| `opensuivi_data` | Base de données + uploads + sauvegardes |
+| `opensuivi_static` | Logo et favicon personnalisés |
+
+Rien n'est perdu lors d'un redémarrage ou d'une mise à jour.
+
+### Mise à jour (Docker)
+
+```bash
+git pull
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Commandes Docker utiles
+
+```bash
+# Voir les logs en direct
+docker compose logs -f
+
+# Arrêter
+docker compose down
+
+# Redémarrer
+docker compose restart
+
+# Sauvegarde manuelle de la BDD
+docker compose exec opensuivi python backup.py
+```
+
+---
+
 ## Configuration
 
 Le fichier `.env` (créé automatiquement depuis `.env.example`) :
