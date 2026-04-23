@@ -122,6 +122,25 @@ La clé API OpenAI se configure dans l'interface : **Admin → Personnalisation*
 
 ---
 
+## Mise à jour
+
+Pour mettre à jour OpenSuivi vers la dernière version :
+
+```bash
+cd ~/opensuivi
+sudo bash update.sh
+```
+
+Le script de mise à jour :
+1. **Sauvegarde automatiquement** la base de données avant toute modification
+2. Récupère le dernier code depuis GitHub (`git pull`)
+3. Met à jour les dépendances Python si nécessaire
+4. Redémarre le service et vérifie qu'il tourne correctement
+
+En cas de problème, la sauvegarde est dans `backups/` et la commande de restauration est affichée à la fin du script.
+
+---
+
 ## Commandes utiles
 
 ```bash
@@ -149,6 +168,7 @@ opensuivi/
 ├── requirements.txt    # Dépendances Python
 ├── setup.sh            # Script d'installation
 ├── install.sh          # Bootstrap (clone + setup)
+├── update.sh           # Script de mise à jour
 ├── .env.example        # Modèle de configuration
 ├── static/
 │   ├── style.css       # Feuille de style globale
