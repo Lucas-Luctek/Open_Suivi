@@ -3,7 +3,7 @@
 ![Licence](https://img.shields.io/badge/licence-GPL%20v3-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Flask](https://img.shields.io/badge/flask-2.3%2B-green)
-[![Discord](https://img.shields.io/discord/1365734614434988133?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/n24gDGYyPH)
+[![Discord](https://img.shields.io/badge/Discord-Rejoindre-5865F2?logo=discord&logoColor=white)](https://discord.gg/n24gDGYyPH)
 
 **OpenSuivi** est un logiciel libre de suivi de recherche d'emploi, auto-hébergé, développé en Python/Flask avec SQLite.  
 Multi-utilisateurs, assisté par IA (GPT-4o-mini), installable comme une vraie application mobile (PWA).
